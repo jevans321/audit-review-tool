@@ -1,0 +1,405 @@
+body {
+    font-family: 'Lato', sans-serif !important;
+}
+
+.pageTitle {
+    font-size: x-large;
+}
+.sideHeaderTitle {
+    font-size: large;
+}
+.testHeaderText {
+    font-weight: bold;
+}
+/*
+    Top menu
+*/
+
+#test-menu {
+    float: right;
+}
+
+#test-menu > div {
+    margin-right: 70px;
+    height: 28px;
+    width: 178px;
+}
+#test-menu > div:last-child {
+    width: 200px;
+}
+
+#test-menu > div > span:first-child, #purpose-btn, #legacy-btn {
+    display: flex;
+    flex: 1;
+    font-size: small;
+    border: 1px solid gray;
+    border-radius: 3px;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+#purpose-btn, #legacy-btn {
+    height: 30px;
+    width: 150px;
+}
+
+#test-menu > div > span:nth-child(2) {
+    margin-left: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#top-container {
+    margin-bottom: 25px;
+}
+
+/* using this display on div parent to get child element to take on its width. */
+#top-container div {
+    display: inline-flex;
+}
+
+h2 span, h3 span, h4 span {
+    font-size: medium;
+}
+
+#error-container {
+    display: inline-block;
+    width: 1140px;
+    margin-left: 30px;
+}
+
+#content-random-check,
+#content-reverse-check {
+    margin-left: 40px;
+}
+
+#content-random-check select,
+#content-reverse-check select {
+    font-family: sans-serif;
+    height: 30px;
+    width: 120px;
+}
+
+.location-content-reverse-check,
+.location-content-random-check,
+.asset-score-reverse-check,
+.asset-score-random-check {
+    margin-left: 50px;
+}
+
+.location-content-reverse-check,
+.location-content-random-check {
+    display: inline-block;
+    margin-top: 105px;
+}
+
+.left-container,
+#content-random-check,
+#content-reverse-check,
+.general-content-random-check,
+.general-content-reverse-check,
+.location-content-random-check,
+.location-content-reverse-check,
+.asset-score-reverse-check,
+.asset-score-random-check {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.asset-score-reverse-check,
+.asset-score-random-check {
+    text-align: center;
+    margin-top: 46px;
+}
+
+.general-div {
+    display: inline-block;
+    width: 400px;
+}
+
+.location-div {
+    display: inline-block;
+    margin-left: 30px;
+    width: 400px;
+}
+
+.grade-select-box {
+    /* float:  right; */
+}
+
+.location-content-random-check > div,
+.location-content-reverse-check > div {
+    height: 36px;
+}
+
+.general-content-reverse-check > div,
+.general-content-random-check > div {
+  display: flex;
+/*   justify-content: center; */
+  align-items: center;
+  height: 40px;
+  border-bottom: 1px solid lightgray;
+ }
+
+.general-content-reverse-check > div:first-child,
+.general-content-random-check > div:first-child {
+   border-bottom: none;
+ }
+
+.general-content-random-check div > div,
+.location-content-random-check div > div,
+.general-content-reverse-check div > div,
+.location-content-reverse-check div > div {
+    display: inline-block;
+}
+
+.general-content-random-check div div:nth-child(1),
+.location-content-random-check div div:nth-child(1),
+.general-content-reverse-check div div:nth-child(1),
+.location-content-reverse-check div div:nth-child(1) {
+    width: 400px;
+}
+
+.general-content-reverse-check > div > div > span,
+.general-content-random-check > div > div > span {
+  float: right;
+  padding-right: 13px;
+}
+
+.data-buttons {
+    width: 296px;
+}
+
+.submit-asset-random-check,
+.submit-asset-reverse-check {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.gen-serials-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: small;
+    height: 24px;
+    width: 130px;
+    border: 1px solid black;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.serial-list {
+    margin-top: 20px;
+}
+
+.serial-list > div {
+    width: 160px;
+}
+
+.serial-container {
+    display: flex;
+    /* justify-content: center; */
+    align-items: center;
+}
+
+.serial-text {
+    cursor: pointer;
+    font-size: small;
+}
+
+.site-select-box {
+    height: 26px;
+    width: 139px;
+    border-radius: 3px;
+}
+
+
+
+/*
+    Dashboard page
+*/
+
+#dash-container {
+    margin-left: 30px;
+}
+
+.dash-content {
+    margin-top:  30px;
+    /* margin-left: 130px; */
+    width: 900px;
+}
+
+.dash-content div:not(:first-child) {
+    border: 1px solid black;
+    border-radius: 3px;
+}
+
+.dash-content div {
+    height: 28px;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-bottom: 8px;
+    display: inline-flex;
+/*     justify-content: center; */
+    align-items: center;
+}
+
+.dash-content div > span {
+    display: flex;
+    justify-content: center;
+    width: 140px;
+}
+
+.dash-content > div:not(:first-child) > span > span {
+    margin-left: 7px;
+}
+
+#generate-btn {
+    display: inline-block;
+    margin-left: 8px;
+    padding-top: 3px;
+    padding-left: 8px;
+    height: 21px;
+    width: 19px;
+    border: 1px solid black;
+    border-radius: 3px;
+    vertical-align: top;
+    cursor: pointer;
+}
+
+.dot-green {
+    border-radius: 50%;
+    height: 21px;
+    width: 21px;
+    background-color: #00b200;
+    display: inline-block;
+}
+
+.dot-red {
+    border-radius: 50%;
+    height: 21px;
+    width: 21px;
+    background-color: red;
+    display: inline-block;
+}
+
+.dot-green-sml {
+    border-radius: 50%;
+    height: 13px;
+    width: 13px;
+    background-color: #00b200;
+    display: inline-block;
+}
+
+.dot-orange-sml {
+    border-radius: 50%;
+    height: 13px;
+    width: 13px;
+    background-color: orange;
+    display: inline-block;
+    margin-right: 4px;
+}
+
+.popup {
+    padding: 10px;
+    background-color: #676767;
+    /* margin: 0 auto; */
+    top: 40%;
+    left: 50%;
+    margin-left: -200px;
+    margin-top: -200px;
+    position: fixed;
+    color: #fff;
+    z-index: 10000;
+    text-align: left;
+ }
+
+ .data-point-select h4,
+ .data-point-select > div {
+    display: inline-block;
+ }
+
+
+ /* duplicate-content CSS */
+
+
+.duplicate-content > div:first-child {
+    background-color: lightgray;
+    border: none;
+  }
+  
+  .duplicate-content > div:first-child div {
+    border-right: solid 1px white;
+    font-weight: bold;
+    font-family: Verdana;
+    font-size: small;
+  }
+
+  .duplicate-content > div > div:last-child {
+    border-right: none;
+  }
+  
+  /* .duplicate-content > div:first-child div:nth-child(5) {
+    text-align: center;
+  } */
+  
+  .duplicate-content > div {
+    border-bottom: 1px solid #ddd;
+      text-align: center;
+  }
+  
+  .duplicate-content > div:nth-child(odd):hover { 
+      background-color: #F6FFE0;
+  }  
+  .duplicate-content > div:nth-child(even):hover {
+      background-color: #F6FFE0;
+  }
+  .duplicate-content > div:nth-child(even) {
+      background-color: #F8F8F8;
+  }
+  
+  .duplicate-content div div {
+    display: inline-flex;
+    justify-content: left;
+    align-items: center;
+    width: 120px;
+    height: 18px;
+  /*   vertical-align: middle; */
+    padding: 12px 0;
+    padding-left: 8px;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+  /*   align-items: center; */
+  }
+  
+  .duplicate-content div div:nth-child(1) {
+    width: 136px;
+  }
+  
+  .duplicate-content div div:nth-child(2) {
+    width: 110px;
+  }
+  
+  .duplicate-content div div:nth-child(3),
+  .duplicate-content div div:nth-child(4) {
+    width: 210px;
+  }
+  
+  .duplicate-content div div:nth-child(5) {
+      width: 160px;
+  /* 	text-align: left;
+      overflow-y: auto;
+      overflow-x: hidden; */
+  }
+  
+  .duplicate-content div div:nth-child(6) {
+    width: 86px;
+  }
+  
+  .duplicate-content div div:nth-child(7) {
+    width: 150px;
+  }  
