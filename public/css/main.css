@@ -1,3 +1,13 @@
+
+
+span.submitFinalDisabled {
+    cursor: not-allowed !important;
+    background: #ededed;
+    color: #c4c4c4;
+    border: 1px solid #d3d3d3 !important;
+}
+
+
 body {
     font-family: 'Lato', sans-serif !important;
 }
@@ -11,9 +21,26 @@ body {
 .testHeaderText {
     font-weight: bold;
 }
+
+.serialTitle {
+    margin-left: 105px;
+}
+
+.audit-title {
+    font-size: x-large;
+    color: #484b86;
+}
 /*
     Top menu
 */
+
+nav {
+    background-color: #484b86;
+}
+
+.sub-container {
+    margin: 70px 25px 25px 25px;
+}
 
 #test-menu {
     float: right;
@@ -28,11 +55,12 @@ body {
     width: 200px;
 }
 
-#test-menu > div > span:first-child, #purpose-btn, #legacy-btn {
+#test-menu > div > span, #purpose-btn, #legacy-btn {
     display: flex;
     flex: 1;
     font-size: small;
-    border: 1px solid gray;
+    border: 1px solid #484b86;
+    color: #484b86;
     border-radius: 3px;
     justify-content: center;
     align-items: center;
@@ -64,15 +92,22 @@ h2 span, h3 span, h4 span {
     font-size: medium;
 }
 
+.active {
+    background: #d5d7f9;
+    color: #484b86;
+}
+
 #error-container {
     display: inline-block;
     width: 1140px;
     margin-left: 30px;
+    margin-top: 15px;
 }
 
 #content-random-check,
 #content-reverse-check {
-    margin-left: 40px;
+    margin-left: 60px;
+    margin-top: 10px;
 }
 
 #content-random-check select,
@@ -139,7 +174,7 @@ h2 span, h3 span, h4 span {
   display: flex;
 /*   justify-content: center; */
   align-items: center;
-  height: 40px;
+  height: 60px;
   border-bottom: 1px solid lightgray;
  }
 
@@ -170,6 +205,16 @@ h2 span, h3 span, h4 span {
 
 .data-buttons {
     width: 296px;
+}
+
+.systemButton {
+    background: #d5d7f9;
+    border: none;
+    height: 34px;
+}
+
+.systemButton:hover {
+    background: #bec1f9;
 }
 
 .submit-asset-random-check,
@@ -203,6 +248,11 @@ h2 span, h3 span, h4 span {
     display: flex;
     /* justify-content: center; */
     align-items: center;
+    padding: 5px;
+}
+
+.serial-container:hover, .actionButton:hover, #generateButton:hover {
+    background: #bec1f9;
 }
 
 .serial-text {
@@ -211,9 +261,11 @@ h2 span, h3 span, h4 span {
 }
 
 .site-select-box {
-    height: 26px;
+    height: 28px;
     width: 139px;
     border-radius: 3px;
+    border: 1px solid #484b86;
+    color: #484b86;
 }
 
 
@@ -226,15 +278,36 @@ h2 span, h3 span, h4 span {
     margin-left: 30px;
 }
 
+#generateButton {
+    display: inline-block;
+    margin-left: 20px;
+    padding-top: 2px;
+    padding-left: 8px;
+    height: 28px;
+    width: 31px;
+    border-radius: 3px;
+    vertical-align: top;
+    cursor: pointer;
+    border: 1px solid #484b86;
+    color: #484b86;
+}
+
 .dash-content {
     margin-top:  30px;
     /* margin-left: 130px; */
     width: 900px;
 }
 
+.dash-content div:not(:first-child):hover {
+    background: #e7e8fe;
+    cursor: pointer;
+}
+
 .dash-content div:not(:first-child) {
-    border: 1px solid black;
+    border: 1px solid #dbdcf9;
     border-radius: 3px;
+    padding: 25px;
+    color: #484b86;
 }
 
 .dash-content div {
@@ -255,19 +328,6 @@ h2 span, h3 span, h4 span {
 
 .dash-content > div:not(:first-child) > span > span {
     margin-left: 7px;
-}
-
-#generate-btn {
-    display: inline-block;
-    margin-left: 8px;
-    padding-top: 3px;
-    padding-left: 8px;
-    height: 21px;
-    width: 19px;
-    border: 1px solid black;
-    border-radius: 3px;
-    vertical-align: top;
-    cursor: pointer;
 }
 
 .dot-green {
@@ -292,6 +352,7 @@ h2 span, h3 span, h4 span {
     width: 13px;
     background-color: #00b200;
     display: inline-block;
+    margin-right: 4px;
 }
 
 .dot-orange-sml {

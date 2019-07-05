@@ -6,7 +6,7 @@ class Index
 
 
     public function getSiteResultsFromDb($site) {
-        error_log("Inside getAssetDataFromCep site: ". $site);
+        // error_log("Inside getAssetDataFromCep site: ". $site);
         include ("connection.php");
         header('Content-Type: application/json');
 
@@ -22,7 +22,7 @@ class Index
          if ($result = mysqli_query($link, $sql)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
-            error_log("getSiteResultsFromDb ROWS: ". print_r($rows, true));
+            // error_log("getSiteResultsFromDb ROWS: ". print_r($rows, true));
             $display = "<div><span>Site</span><span>Test 1</span><span>Test 2</span><span>Test 3</span><span>Test 4</span><span>Test 5</span><span>Test 6</span><span>Date</span></div>";
             for ($i = 0; $i < count($rows); ++$i) {
                 $date = date('m-d-Y', strtotime($rows[$i]['updated']));
@@ -41,7 +41,7 @@ class Index
                 $display .=  "<span>".$rows[$i]['test_5']."<span class='".$test5DotClass."'></span></span><span>".$rows[$i]['test_6']."<span class='".$test6DotClass."'></span></span>";
                 $display .= "<span>". $date ."</span><span>id: ". $rows[$i]['id'] ."</span></div>";
             }
-            error_log("DISPLAY: ". $display);
+            // error_log("DISPLAY: ". $display);
             echo json_encode($display);
 
          } else {

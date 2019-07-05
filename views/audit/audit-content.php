@@ -1,49 +1,37 @@
-<?php 
-//   include ("routes/checkSession.php"); 
-?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link href="./public/css/main.css" rel="stylesheet">
-    <script src="./public/lib/jquery-3.3.1.min.js"></script>
-	<script src="./public/lib/jquery-ui.min.js"></script>
-    <title>Document</title>
-</head>
-<body>
-    <div id="top-container">
-        <div>  
-            <span></span><select class="site-select-box" onchange="createAuditMasterRecord($(this).val())"> <!-- can you simply change this function on the content change? -->
+    <div id="dash-container">
+        <select class="site-select-box"  onchange="getSiteResults($(this).val())"> <!-- can you simply change this function on the content change? -->
             <option value="" disabled="" selected="">Select Site</option>
             <option value="can">CAN</option>
             <option value="cdl">CDL</option>
             <option value="hur">HUR</option>
             <option value="isl">ISL</option>
             <option value="rtp">RTP</option>
-            <option value="svl">SVL</option>
-            </select>
+            <option value="svl">SVL</option>      
+        </select>
+        <div id="generateButton" title="Generate New Audit Test" onclick="createAuditMasterRecord($('.site-select-box').val())">G</div>
+    
+        <div class="dash-content">
         </div>
+    </div>    
+    
+    <div id="top-container">
+    <span class="audit-title"></span>
         <div id="test-menu">
-            <div><span onclick="toggleContainers('#random-check-container')">Forward Check</span><span>dot</span></div>
-            <div><span onclick="toggleContainers('#reverse-check-container')">Reverse Check</span><span>dot</span></div>
-            <div><span>Test 3</span><span>dot</span></div>
-            <div><span>Test 4</span><span>dot</span></div>
+            <div><span class="actionButton" onclick="toggleContainers('#random-check-container')">Forward Check</span></div>
+            <div><span class="actionButton" onclick="toggleContainers('#reverse-check-container')">Reverse Check</span></div>
             <div><span onclick="openSubmitFinalModal(createdMasterId)">Submit Final Results</span></div>
         </div>
     </div>
     <div class="left-container">
         <div id="random-check-container">
-            <div class="sideHeaderTitle"><span class="testHeaderText">Test 1:</span> Forward System Check</div>
-            <div><h5 class="serial-check-header">System Check <span id="current-asset"></span> of <span id="total-assets"></span></h5></div> 
+            <div><div class="serial-check-header sideHeaderTitle">System Check <span id="current-asset"></span> of <span id="total-assets"></span></div></div> 
             <div><form id="searchForm" onsubmit="openSerialSearchModal($('#search').val(), createdMasterId, 'audit_forward'); return false;" method="post">
                 <input type="text" id="search" placeholder="Enter Serial Number" name="search"><button class="searchButton" type="submit">Submit<img id="" src="public/images/search_icon_2.png" alt=""></button>
             </form></div>
             <div class="top-serial-list">
             </div>
             <div class="system-found-div">
-                <h3>System Found?</h3>
+                <div class="sideHeaderTitle">System Found in CEP?</div>
                 <!-- <select class="system-found-select-box" onchange="updateGradeInMaster(createdMasterId, $(this).val(), 'test_1')"> -->
                 <select class="system-found-select-box" onchange="updateAssetGrade('audit_forward', 'asset_found_grade', $(this).val(), createdMasterId, submittedSerial);">
                     <option value="" disabled="" selected="">Select</option>
@@ -54,7 +42,6 @@
         </div>
 
         <div id="reverse-check-container">
-            <h4>Test 6: <span>Reverse Data Integrity Check</span></h4>
             <div class="gen-serials-btn" onclick="addRandomAssets(createdMasterId, selectedSite)">Generate Serials</div>
             <div class="serial-list">
             </div>
@@ -104,16 +91,38 @@
     /* Variables for any existing 'Forward Check' grades in db. Used in the 'openPurpose' and openLegacy' modal functions */
     var purpose1Grade, purpose2Grade, legacy1Grade, legacy2Grade;
 
+    function getSiteResults(selectedSite){
+		console.log("getSiteResults selectedSite: ", selectedSite);
+		// if(!selectedSite) return;
+		var data = {
+			"action": "getSiteResults",
+			"site": selectedSite
+		};
+		data = $(this).serialize() + "&" + $.param(data);
+		$.ajax({
+			type: "POST",
+			url: "./routes/audit-dash_class.php",
+			data: data,
+			success: function(data) {
+                // var code = "<div class='site-results'></div>";
+                console.log("get site results: ", data);
+                $(".dash-content").html(data);
+			} //success
+		}); //end ajax
+    }
+
     function toggleContainers(id) {
         // $("#random-check-container, #reverse-check-container, #content-random-check, #content-reverse-check").hide();
         $("#error-container").empty();
         /* If the Forward Check menu item selected, then calculate the Sites total number of systems that need to be checked */
         if(id === "#random-check-container") {
+            $(".audit-title").text("Forward Check");
             $("#reverse-check-container, #content-reverse-check").hide();
             $("#random-check-container, #content-random-check").show();
             getForwardCheckSystemsTotal(selectedSite);
 
-        } else {
+        } else { // if Reverse Check
+            $(".audit-title").text("Reverse Check");
             $("#random-check-container, #content-random-check").hide();
             $("#reverse-check-container, #content-reverse-check").show();
         }
@@ -123,14 +132,15 @@
     function getForwardCheckSystemsTotal(site) {
         var data = {
 			"action": "getForwardCheckSystemsTotal",
-			"site": site
+            "site": site,
+            "masterId": createdMasterId
         };
         
 		data = $(this).serialize() + "&" + $.param(data);
 
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
                 console.log("getForwardCheckSystemsTotal data: ", data);
@@ -173,7 +183,7 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
                 console.log("getAssetGradeData data: ", data);
@@ -185,8 +195,18 @@
                     // $("#content-reverse-check").show();
                     if(table === "audit_forward") {
                         updateAssetFoundGradeAndSelectBox('fail');
+                        $(".system-found-div").show();
                     } else {
-                        $(".serial-list").html(data[2]);
+                        /* The below conditional will re-add the 'active' class to the serial numbers
+                        div container (if it exists in the element). This is done becuase the active
+                        class is removed when the serial list is re-populated.
+                        - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
+                        if($( "div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
+                            $(".serial-list").html(data[2]);
+                            $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
+                        } else {
+                            $(".serial-list").html(data[2]);
+                        }
                     }
 
                     // I can probablly replace data[2] with 'table' variable
@@ -205,6 +225,7 @@
                         return;
                     }
                     updateAssetFoundGradeAndSelectBox('pass');
+                    $(".system-found-div").show();
                     
                 } else { // if successful 'Reverse Check' serial search..
                     $(".general-content-reverse-check").html(data[0]);
@@ -260,7 +281,7 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
                 console.log("grades data array: ", data);
@@ -291,27 +312,6 @@
                     // Test 2 through 5 scores can be added here..
                 }
 
-			} //success
-		}); //end ajax
-    }
-
-    function getSiteResults(id, selectedSite){
-		console.log("getSiteResults id: ", id);
-		console.log("getSiteResults status: ", selectedSite);
-		if(!selectedSite) return;
-		var data = {
-			"action": "getSiteResults",
-			"assetId": id,
-			"site": selectedSite
-		};
-		data = $(this).serialize() + "&" + $.param(data);
-		$.ajax({
-			type: "POST",
-			url: "./routes/index_class.php",
-			data: data,
-			success: function(data) {
-                // var code = "<div class='site-results'></div>";
-                $("content").html(data);
 			} //success
 		}); //end ajax
     }
@@ -351,7 +351,7 @@
 
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
                 console.log("updateAssetGrade data: ", data);
@@ -386,7 +386,7 @@
 
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
                 console.log("updateGradeInMaster data: ", data);
@@ -400,7 +400,11 @@
         if(site === 'cdl') {
             alert("CDL site has no Grid Locations");
             return;
+        } else if(!site) {
+            alert("Please select site location");
+            return;
         }
+        $("#dash-container").hide();
         $(".serial-list").empty();
 		console.log("Inside createAuditMasterRecord");
 		// $( ".admin-content" ).empty();
@@ -412,13 +416,13 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {	
                 console.log("Object from from createAuditMasterRecord: ", data);
                 selectedSite = data[0];
                 createdMasterId = data[1];
-                $("#test-menu").show();
+                $("#top-container, #test-menu").show();
                              
  				// $(".loader").hide();	
 			} //success
@@ -437,7 +441,7 @@
         data = $(this).serialize() + "&" + $.param(data);
         $.ajax({
             type: "POST",
-            url: "./routes/index_class.php",
+            url: "./routes/audit_class.php",
             data: data,
             success: function(data) {	
                 console.log("addRandomAssets data: ", data);
@@ -459,7 +463,7 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {	
                 console.log("submitAsset data: ", data);
@@ -481,7 +485,20 @@
                 } else {
                     $(".asset-score-reverse-check").html(data[0]);
                 }
-                $(".serial-list").html(data[1]);
+
+                /* The below conditional will re-add the 'active' class to the serial numbers
+                   div container (if it exists in the element). This is done becuase the active
+                   class is removed when the serial list is re-populated.
+                   - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
+                if($("div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
+                    // add new list
+                    $(".serial-list").html(data[1]);
+                    // now add active class back to serial div
+                    $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
+                } else {
+                    // outside of conditional add new list like normal
+                    $(".serial-list").html(data[1]);
+                }
              
 				// $(".loader").hide();	
 
@@ -503,7 +520,7 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {	
                 console.log("checkSerial data: ", data);
@@ -543,7 +560,7 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/index_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {	
                 console.log("submitFinalResults data: ", data);
@@ -728,22 +745,19 @@
 
     $(function(){
 
-        $("#test-menu, #random-check-container, #reverse-check-container, #content-random-check, #error-container").hide();
-        // var timesClicked = 0;
+        $("#top-container, #test-menu, #random-check-container, #reverse-check-container, #content-random-check, #error-container, .system-found-div").hide();
 
-        // $(".serial-div").click(function() {
-        // timesClicked++;
 
-        // if (timesClicked > 1) {
-        // //run second function
-        // } else {
-        // //run first function
-        //     Grade(cepId)
-        // }
+        $('body').on('click', '.actionButton, .serial-container', function() {
 
-        // })
+            if($(this).attr("class").includes("actionButton")) {
+                $( ".actionButton" ).removeClass( "active" );
+            } else {
+                $( ".serial-container" ).removeClass( "active" );
+            }
+            
+            $( this ).addClass( "active" );
+        });
 
     });
   </script>
-</body>
-</html>

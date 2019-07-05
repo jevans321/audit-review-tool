@@ -232,15 +232,8 @@ class Index
                 echo json_encode($array);
                 exit;
             }
-            if($table == "audit_reverse") { 
-                $display = "<div class='sideHeaderTitle'><span class='testHeaderText'>Test 6:</span>&nbsp;Reverse Data Integrity Check</div><div class='pageTitle'>CEP System Info</div>";
-            } else {
-                $display = "<div class='sideHeaderTitle'><span class='testHeaderText'>Test 2:</span>&nbsp;Confirm Data Completeness in CEP</div><div class='pageTitle'>CEP System Info</div>";
-            }
+            $display = "<div class='pageTitle'>CEP System Info: <span class='serialTitle'>$serial</span></div>";
 
-            $display .=  "<div>
-                            <div>Serial:&nbsp;<span id='serial' class='span-static-val'>". $serial ."</span></div>
-                        </div>";
             $siteValue = $rows[0]['hw_site'] ? htmlentities($rows[0]['hw_site']) : "<i>Item not available</i>";
             $display .=  "<div>
                              <div>Site:&nbsp;<span id='site' class='span-static-val'>". $siteValue ."</span></div>
@@ -349,14 +342,10 @@ class Index
                         </div>";
 
             $display2 = "<div class='data-buttons text-center'><button style='margin: 10px 0; width: 100%;' onclick='getApi()' class='systemButton ajaxButton'>Automation Check</button>
-                                <button style='margin-bottom: 25px; width: 100%;' onclick='submitAsset(\"$serial\", $masterId, \"$table\")' class='systemButton ajaxButton'>Submit Changes</button></div>";
+                                <button style='margin-bottom: 25px; width: 100%;' onclick='submitAsset(\"$serial\", $masterId, \"$table\")' class='systemButton ajaxButton'>Complete Asset Check</button></div>";
             $display3 = "";
             if($table == "audit_forward") {
-                $display3 .= "<div id='test4-div'>
-                                <h3>Test 4</h3>
-                                <div id='purpose-btn' onclick='openPurposeModal(createdMasterId, submittedSerial)'>Purpose Check</div>
-                            </div>
-                            <div id='test5-div'>
+                $display3 .= "<div id='test5-div'>
                                 <h3>Test 5</h3>
                                 <div id='legacy-btn' onclick='openLegacyModal(createdMasterId, submittedSerial)'>Legacy Check</div>
                             </div>";
@@ -616,7 +605,9 @@ class Index
     } // end updateAssetGradeInDb
 
     /* This function retrieves the count for half of the hardware systems of a given site */
-    public function getForwardCheckSystemsTotal($site) {
+    public function getForwardCheckSystemsTotal($site, $masterId) {
+        error_log("getForwardCheckSystemsTotal site: ". $site);
+        error_log("getForwardCheckSystemsTotal masterId: ". $masterId);
         include ("connection.php");
         header('Content-Type: application/json');
         
@@ -632,6 +623,23 @@ class Index
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             // error_log("getForwardCheckSystemsTotal rows array: ". print_r($rows, true));
             // error_log("getForwardCheckSystemsTotal total: ". $rows[0]['total']);
+            $total = intval($rows[0]['total']);
+            error_log("getForwardCheckSystemsTotal total: ". $total);
+            error_log("getForwardCheckSystemsTotal getType total: ". gettype($total));
+
+            $subSql = "UPDATE audit_master
+                        SET forward_asset_total = ?
+                        WHERE id = ?";
+
+            if($stmt = mysqli_prepare($link, $subSql)){
+                // Bind variables to the prepared statement as parameters
+                mysqli_stmt_bind_param($stmt, "ii", $total, $masterId);
+                mysqli_stmt_execute($stmt);              
+                // echo json_encode($stmt);
+
+            } else {
+                echo json_encode(array('status' => 'error','message' => $link->error));
+            }
 
             echo json_encode($rows[0]['total']);
 
@@ -767,7 +775,7 @@ class Index
    
         case "getForwardCheckSystemsTotal":
             $activePmr = new Index();
-                $activePmr->getForwardCheckSystemsTotal($_POST["site"]);
+                $activePmr->getForwardCheckSystemsTotal($_POST["site"], $_POST["masterId"]);
             break;
     
         case "submitFinalResults":
