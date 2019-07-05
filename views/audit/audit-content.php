@@ -28,8 +28,6 @@
             <div><form id="searchForm" onsubmit="openSerialSearchModal($('#search').val(), createdMasterId, 'audit_forward'); return false;" method="post">
                 <input type="text" id="search" placeholder="Enter Serial Number" name="search"><button class="searchButton" type="submit">Submit<img id="" src="public/images/search_icon_2.png" alt=""></button>
             </form></div>
-            <div class="top-serial-list">
-            </div>
             <div class="system-found-div">
                 <div class="sideHeaderTitle">System Found in CEP?</div>
                 <!-- <select class="system-found-select-box" onchange="updateGradeInMaster(createdMasterId, $(this).val(), 'test_1')"> -->
@@ -39,11 +37,13 @@
                     <option value="fail">No</option>
                 </select>
             </div>
+            <div class="forward-serial-list">
+            </div>
         </div>
 
         <div id="reverse-check-container">
             <div class="gen-serials-btn" onclick="addRandomAssets(createdMasterId, selectedSite)">Generate Serials</div>
-            <div class="serial-list">
+            <div class="reverse-serial-list">
             </div>
         </div>
     </div> <!-- End of left-container  -->
@@ -111,11 +111,11 @@
 		}); //end ajax
     }
 
-    function toggleContainers(id) {
+    function toggleContainers(elementId) {
         // $("#random-check-container, #reverse-check-container, #content-random-check, #content-reverse-check").hide();
         $("#error-container").empty();
         /* If the Forward Check menu item selected, then calculate the Sites total number of systems that need to be checked */
-        if(id === "#random-check-container") {
+        if(elementId === "#random-check-container") {
             $(".audit-title").text("Forward Check");
             $("#reverse-check-container, #content-reverse-check").hide();
             $("#random-check-container, #content-random-check").show();
@@ -144,15 +144,23 @@
 			data: data,
 			success: function(data) {
                 console.log("getForwardCheckSystemsTotal data: ", data);
-                $("#total-assets").text(data);
-                $("#current-asset").text(serialCheckCount);
+                $("#total-assets").text(data[0]); // display total asset count in UI
                 
- 
+                if(data[1]) { // If an 'assets checked' count exists then display it in UI
+                    $("#current-asset").text(data[1]);
+                    if(data[2]) { // If an html serial list exists then display it in UI
+                        $(".forward-serial-list").html(data[2]);
+                    }
+                } else { // if no 'assets checked' count exists then just display 0
+                    $("#current-asset").text(0);
+                }
+                
 			} //success
 		}); //end ajax
     }
 
-    function getAssetGradeData(serial, masterId, table){
+    function getAssetGradeData(serial, masterId, table, noAlert){
+        console.log("This is the THIS 1st Line: ", this);
         $("#error-container").hide();
         if(table === "audit_forward") {
             removePopup();
@@ -194,7 +202,7 @@
                     // $("#content-random-check").html(data[0]); 
                     // $("#content-reverse-check").show();
                     if(table === "audit_forward") {
-                        updateAssetFoundGradeAndSelectBox('fail');
+                        incrementAssetCheckedTotalAndFoundStatus('fail', table);
                         $(".system-found-div").show();
                     } else {
                         /* The below conditional will re-add the 'active' class to the serial numbers
@@ -202,10 +210,10 @@
                         class is removed when the serial list is re-populated.
                         - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
                         if($( "div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
-                            $(".serial-list").html(data[2]);
+                            $(".reverse-serial-list").html(data[2]);
                             $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
                         } else {
-                            $(".serial-list").html(data[2]);
+                            $(".reverse-serial-list").html(data[2]);
                         }
                     }
 
@@ -220,36 +228,21 @@
                         - the user should be alerted
                         - the sytem should not be counted */
                     if(data[4] === "record exists") {
+                        
                         getAssetGrades(serial, table, masterId);
-                        alert("This system has already been searched and counted");
+                        if(!noAlert) {
+                            alert("This system has already been searched and counted");
+                        }
                         return;
                     }
-                    updateAssetFoundGradeAndSelectBox('pass');
+                    incrementAssetCheckedTotalAndFoundStatus('pass', table);
                     $(".system-found-div").show();
                     
                 } else { // if successful 'Reverse Check' serial search..
                     $(".general-content-reverse-check").html(data[0]);
                     $(".location-content-reverse-check").html(data[1]);
                     $("#content-reverse-check").show();
-                    // updateAssetFoundGradeAndSelectBox('pass');
-                }
-
-                function updateAssetFoundGradeAndSelectBox(grade) {        
-                    // If Forward-check: update total count of serial numbers searched
-                    if(table === "audit_forward") {
-                        serialCheckCount++;
-                        var assetTotal = $("#total-assets").text();
-                        if(serialCheckCount === Number(assetTotal)) {
-                            // hide search box
-                            // replace search box with "Forward Check Complete"
-                            // "Total number of systems checked"
-                        }
-                        $("#current-asset").text(serialCheckCount);
-                    }
-                    // updateGradeInMaster(createdMasterId, 'fail', 'test_1');
-                    updateAssetGrade(table, "asset_found_grade", grade, masterId, serial);
-                    $(".system-found-select-box").val(grade);
-
+                    
                 }
                       
                 /*  Conditional below retrieves past asset pass/fail grades only if serial link has been clicked already.
@@ -268,6 +261,46 @@
 			} //success
         }); //end ajax
         $("#search").val('');
+    }
+
+    /* Helper function */
+    function incrementAssetCheckedTotalAndFoundStatus(grade, table) {        
+        // If Forward-check: update total count of serial numbers searched
+        if(table === "audit_forward") {
+            // serialCheckCount++;
+            var data = {
+                "action": "incrementAssetCheckedTotalAndFoundStatus",
+                "table": table,
+                "masterId": createdMasterId
+            };
+        
+            data = $(this).serialize() + "&" + $.param(data);
+
+            $.ajax({
+                type: "POST",
+                url: "./routes/audit_class.php",
+                data: data,
+                success: function(data) {
+                    console.log("incrementAssetCheckedTotalAndFoundStatus data: ", data);
+                    $(".forward-serial-list").html(data[0]);
+                    $( "div.serial-container:contains("+submittedSerial+")" ).addClass( "active" ); // highlight serial number menu item that was just searched
+                    $("#current-asset").text(data[1]);
+                    /* Below conditional: if data[2] exists it means all required assets for
+                       Forward Check have been searched for */
+                    if(data[2]) {
+                        alert("You've completed all checks!");
+                        // hide search box
+                        // replace search box with "Forward Check Complete"
+                        // "Total number of systems checked"
+                        // Completed systems should already be shown
+                    }
+                } //success
+            }); //end ajax
+        }
+        // updateGradeInMaster(createdMasterId, 'fail', 'test_1');
+        updateAssetGrade(table, "asset_found_grade", grade, createdMasterId, submittedSerial);
+        $(".system-found-select-box").val(grade);
+
     }
 
     function getAssetGrades(serial, table, masterId){
@@ -405,7 +438,7 @@
             return;
         }
         $("#dash-container").hide();
-        $(".serial-list").empty();
+        $(".reverse-serial-list").empty();
 		console.log("Inside createAuditMasterRecord");
 		// $( ".admin-content" ).empty();
 		// $(".loader").show();
@@ -445,7 +478,7 @@
             data: data,
             success: function(data) {	
                 console.log("addRandomAssets data: ", data);
-                $(".serial-list").html(data);
+                $(".reverse-serial-list").html(data);
                 // $(".loader").hide();	
 
             } //success
@@ -481,23 +514,24 @@
 
                     }
 
-                    // $(".asset-score-random-check").html(data[0]);
+                    // $(".asset-score-random-check").html(data[1]);
                 } else {
-                    $(".asset-score-reverse-check").html(data[0]);
+                    // display the Asset Score div with score retrieved from database.
+                    $(".asset-score-reverse-check").html(data[1]);
                 }
 
-                /* The below conditional will re-add the 'active' class to the serial numbers
+                /* Below conditional: re-add's the 'active' class to the serial numbers
                    div container (if it exists in the element). This is done becuase the active
                    class is removed when the serial list is re-populated.
                    - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
                 if($("div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
                     // add new list
-                    $(".serial-list").html(data[1]);
+                    $(".reverse-serial-list").html(data[0]);
                     // now add active class back to serial div
                     $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
                 } else {
                     // outside of conditional add new list like normal
-                    $(".serial-list").html(data[1]);
+                    $(".reverse-serial-list").html(data[0]);
                 }
              
 				// $(".loader").hide();	

@@ -236,11 +236,13 @@ h2 span, h3 span, h4 span {
     cursor: pointer;
 }
 
-.serial-list {
+.reverse-serial-list,
+.forward-serial-list {
     margin-top: 20px;
 }
 
-.serial-list > div {
+.reverse-serial-list > div,
+.forward-serial-list > div {
     width: 160px;
 }
 

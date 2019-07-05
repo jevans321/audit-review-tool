@@ -98,7 +98,7 @@ class Index
             /* If the random assets from CEP are copied and inserted into the audit_reverse table successfully,
                based on the query above, then the function below will select the newly added assets from audit_reverse table based on the
                newly created master id and send them to front end for display. */
-            $display = $this->getRandomAssetsFromDb($masterId);
+            $display = $this->createSerialListFromDb("audit_reverse", $masterId);
             echo json_encode($display);
             
            
@@ -112,14 +112,15 @@ class Index
     /* This is a Helper function that retrieves the randomly generated cep assests 'serial numbers' from the
        audit_reverse table associated with the provided master id.
        - The serial numbers are then displayed in a list in the UI's left-side column */
-    public function getRandomAssetsFromDb($masterId) {
-        // error_log("Inside back-end getRandomAssetsFromDb ID: ". $masterId);
+    public function createSerialListFromDb($table, $masterId) {
+        // error_log("Inside back-end createSerialListFromDb ID: ". $masterId);
 		include ("connection.php");
         header('Content-Type: application/json');
 
-        
-        $sql = "SELECT system_serial, review_status FROM audit_reverse
-                WHERE master_id = $masterId";
+        $sql = "SELECT system_serial, review_status FROM $table
+                WHERE master_id = $masterId
+                ORDER BY id DESC";
+    
 
         if ($result = mysqli_query($link, $sql)) {
             $rows = $result->fetch_all(MYSQLI_ASSOC);
@@ -128,8 +129,12 @@ class Index
             for ($i = 0; $i < count($rows); ++$i) {
                 $serial = htmlentities($rows[$i]['system_serial']);
                 $statusDotClass = htmlentities($rows[$i]['review_status']) === 'complete' ? 'dot-green-sml' : 'dot-orange-sml';
-                // error_log("Inside getRandomAssetsFromDb serial: ". $serial);
-                $display .=  "<div class='serial-container' onclick='getAssetGradeData(\"$serial\", $masterId, \"audit_reverse\")'><span class='$statusDotClass'></span><span class='serial-text'>$serial</span></div>";
+                // error_log("Inside createSerialListFromDb serial: ". $serial);
+                if($table == "audit_forward") {
+                    $display .=  "<div class='serial-container' onclick='getAssetGradeData(\"$serial\", $masterId, \"$table\", true)'><span class='$statusDotClass'></span><span class='serial-text'>$serial</span></div>";
+                } else {
+                    $display .=  "<div class='serial-container' onclick='getAssetGradeData(\"$serial\", $masterId, \"$table\")'><span class='$statusDotClass'></span><span class='serial-text'>$serial</span></div>";
+                }
  
             }
             $display .= "</div>";
@@ -141,7 +146,7 @@ class Index
         return (array('status' => 'error','message' => $link->error));
         }
 
-    } // end getRandomAssetsFromDb
+    } // end createSerialListFromDb
     
     /* This function handles CEP data retrieval queries for the provided serial numbers for
        both forward and reverse checks. The conditionals in the function including audit_forward
@@ -150,13 +155,13 @@ class Index
         // error_log("getAssetGradeDataFromCep TABLE: ". $table);
         include ("connection.php");
         header('Content-Type: application/json');
-
+        $array = array();
         if($table == "audit_forward") {
             /* Call HELPER function here, which will create a record in audit_forward table for this asset.
                So when you update the asset's grade a record will exist where the changes will be executed.
                - since php is synchronous, the record should be created first before the next query below. */
             $createRecordReturnValue = $this->createForwardCheckAssetRecord($serial, $masterId);
-
+            $array[4] = $createRecordReturnValue;
             /* IF SERIAL IS ALREADY IN TABLE, NOTIFY USER & DO NOT INCREASE THE SYSTEM CHECK COUNT */
         }
 
@@ -216,7 +221,7 @@ class Index
                     /* Updated the review_status in the audit_reverse table to 'complete'. I'm using the updateAssetGradeInDb function
                        because it does exactly what I need without needing to create another function.  */
                     $this->updateAssetGradeInDb($table, "review_status", "complete", $masterId, $serial);
-                    $serialList = $this->getRandomAssetsFromDb($masterId);
+                    $serialList = $this->createSerialListFromDb("audit_reverse", $masterId);
                     $array[2] = $serialList; //substr($serialList, 0, -3);
                 }
 
@@ -351,13 +356,10 @@ class Index
                             </div>";
             }
 
-            $array = array(
-                0 => $display,
-                1 => $display2,
-                2 => $table,
-                3 => $display3,
-                4 => $createRecordReturnValue
-            );
+            $array[0] = $display;
+            $array[1] = $display2;
+            $array[2] = $table;
+            $array[3] = $display3;
             
             echo json_encode($array);
   
@@ -472,38 +474,38 @@ class Index
 
         if($stmt = mysqli_prepare($link, $sql)){
             // error_log("Inside prepare");
+            $array = array();
             if($table == "audit_forward") {
                 mysqli_stmt_bind_param($stmt, "sisisis", $serial, $masterId, $serial, $masterId, $serial, $masterId, $serial);
                 mysqli_stmt_execute($stmt);
                 echo json_encode($stmt);
-                exit;
-            }
-            mysqli_stmt_bind_param($stmt, "sis", $serial, $masterId, $serial);
-            mysqli_stmt_execute($stmt);
-
-            /* For a Reverse Check Submission, this query sends the score that was just created out to the UI */
-            $sql = "SELECT score FROM $table WHERE system_serial = '$serial' && master_id = $masterId";
-
-            if ($result = mysqli_query($link, $sql)) {
-   
-                $rows = $result->fetch_all(MYSQLI_ASSOC);
-
-                $display = "<h2>Asset Score</h2>";
-                $display .= "<div>". $rows[0]['score'] ."</div>";
                 
-                /* update the side-bar serial list to show newly completed serial numbers with green dot */
-                $serialListHtml = $this->getRandomAssetsFromDb($masterId);
-               
-                $array = array(
-                   0 => ($display),
-                   1 => ($serialListHtml),
-                   2 => ($stmt)
-                );
-                echo json_encode($array);
-            
-            }  else {
-                return (array('status' => 'error','message' => $link->error));
+            } else { // if a Reverse Check is being done
+                mysqli_stmt_bind_param($stmt, "sis", $serial, $masterId, $serial);
+                mysqli_stmt_execute($stmt);
+
+                
+                /* For a Reverse Check Submission, this query sends the score that was just created out to the UI */
+                $sql = "SELECT score FROM $table WHERE system_serial = '$serial' && master_id = $masterId";
+
+                if ($result = mysqli_query($link, $sql)) {
+    
+                    $rows = $result->fetch_all(MYSQLI_ASSOC);
+
+                    $scoreDisplay = "<h2>Asset Score</h2>";
+                    $scoreDisplay .= "<div>". $rows[0]['score'] ."</div>";
+                
+                    $array[1] = $scoreDisplay;
+                    $array[2] = $stmt;
+                
+                }  else {
+                    return (array('status' => 'error','message' => $link->error));
+                }
             }
+            /* update the side-bar serial list to show newly completed serial numbers with green dot */
+            $serialListHtml = $this->createSerialListFromDb($table, $masterId);
+            $array[0] = $serialListHtml;
+            echo json_encode($array);
 
         } else {
             return (array('status' => 'error','message' => $link->error));
@@ -583,7 +585,7 @@ class Index
 
     public function updateGradeInMaster($masterId, $grade, $column) {
 
-        // error_log("Inside getRandomAssetsFromDb serial: ". $serial);
+        // error_log("Inside createSerialListFromDb serial: ". $serial);
 		include ("connection.php");
 		header('Content-Type: application/json');
 		// $name = $_SESSION['firstName']. " " .$_SESSION['lastName'];
@@ -611,18 +613,45 @@ class Index
         include ("connection.php");
         header('Content-Type: application/json');
         
-        /* Query the cep_hw table with site name.
+        $array = array();
+        /* Query the audit_master table to check if asset total already exists.
+           Then send that total along with the completion count to front-end and exit function */
+        $sql1 = "SELECT forward_asset_total, forward_assets_checked FROM audit_master WHERE id = $masterId";
+        if ($result = mysqli_query($link, $sql1)) {
+
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+    
+            if($rows[0]['forward_asset_total'] > 0) {
+                $array[0] = $rows[0]['forward_asset_total'];
+                $array[1] = $rows[0]['forward_assets_checked'];
+                /* If any assets have already been checked, create an html serial list from them and send list to front end. */
+                if($rows[0]['forward_assets_checked'] > 0) {
+                    $serialList = $this->createSerialListFromDb("audit_forward", $masterId);
+                    $array[2] = $serialList;
+                }
+                
+                echo json_encode($array);
+                exit;
+            }
+            // else the total does not exist, so move on to the query below to create the total
+         } else {
+            echo (array('status' => 'error','message' => $link->error));
+        }        
+        /* Create Asset Number Total for Forward Check:
+           - Query the cep_hw table with site name.
            - Count only the systems with grid locations where
            - Divide the count by 2
            - Echo the result */
-        $sql = "SELECT ROUND(count(*) / 100) as total FROM cep_hw WHERE hw_site = '$site'
+        $sql2 = "SELECT ROUND(count(*) / 100) as total FROM cep_hw WHERE hw_site = '$site'
                 AND COALESCE(grid_id, '') <> '' AND grid_id <> 0";
 
-         if ($result = mysqli_query($link, $sql)) {
+         if ($result = mysqli_query($link, $sql2)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             // error_log("getForwardCheckSystemsTotal rows array: ". print_r($rows, true));
             // error_log("getForwardCheckSystemsTotal total: ". $rows[0]['total']);
+
+            /* Below convert total value from a string to an integer, so it can be inserted into database as integer */
             $total = intval($rows[0]['total']);
             error_log("getForwardCheckSystemsTotal total: ". $total);
             error_log("getForwardCheckSystemsTotal getType total: ". gettype($total));
@@ -640,8 +669,9 @@ class Index
             } else {
                 echo json_encode(array('status' => 'error','message' => $link->error));
             }
-
-            echo json_encode($rows[0]['total']);
+            /* Using an array here to keep echo output format consistent */
+            $array[0] = $rows[0]['total'];
+            echo json_encode($array);
 
          } else {
             return (array('status' => 'error','message' => $link->error));
@@ -718,6 +748,54 @@ class Index
             echo (array('status' => 'error','message' => $link->error));
         }
     }
+
+    public function incrementAssetCheckedTotalAndFoundStatus($table, $masterId) {
+
+        // error_log("Inside createSerialListFromDb serial: ". $serial);
+		include ("connection.php");
+		header('Content-Type: application/json');
+		// $name = $_SESSION['firstName']. " " .$_SESSION['lastName'];
+
+		$sql = "UPDATE audit_master
+                SET forward_assets_checked = forward_assets_checked + 1
+                WHERE id = ?";
+		
+		if($stmt = mysqli_prepare($link, $sql)){
+			// Bind variables to the prepared statement as parameters
+			mysqli_stmt_bind_param($stmt, "i", $masterId);
+            mysqli_stmt_execute($stmt);
+            $array = array();
+            /* The created serial list below will allow user to immediately see the serial number in the side-bar menu after serial search. */
+            $serialList = $this->createSerialListFromDb("audit_forward", $masterId);
+            $array[0] = $serialList;
+            /* Query that retrieves Forward Check asset totals*/
+            $subSql = "SELECT forward_asset_total, forward_assets_checked FROM audit_master WHERE id = $masterId";
+            if ($result = mysqli_query($link, $subSql)) {
+
+                $rows = $result->fetch_all(MYSQLI_ASSOC);
+                /* Below conditional: check if all assets assigned for the Forward Check have been checked or
+                   searched for. This is done by checkinf if the checked count equals the asset total */
+                if($rows[0]['forward_assets_checked'] === $rows[0]['forward_asset_total']) {
+                    // echo a string or something
+                    $array[1] = $rows[0]['forward_assets_checked'];
+                    $array[2] = "complete";
+                    echo json_encode($array);
+                    exit;
+                }
+                // else the Forward Check is not complete so only echo the assets checked count to front-end
+                $array[1] = $rows[0]['forward_assets_checked'];
+                echo json_encode($array);
+                exit;
+            } else {
+                echo (array('status' => 'error','message' => $link->error));
+            }
+            
+            echo json_encode($stmt);
+
+		} else {
+			echo json_encode(array('status' => 'error','message' => $link->error));
+		}
+    } // end updateAssetGradeInDb
     
 } //End Class
 
@@ -781,6 +859,11 @@ class Index
         case "submitFinalResults":
             $activePmr = new Index();
                 $activePmr->submitFinalResultsToMaster($_POST["masterId"]);
+            break;
+            
+        case "incrementAssetCheckedTotalAndFoundStatus":
+            $activePmr = new Index();
+                $activePmr->incrementAssetCheckedTotalAndFoundStatus($_POST["table"], $_POST["masterId"]);
             break;
 
     }
