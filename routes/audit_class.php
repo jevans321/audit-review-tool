@@ -31,7 +31,7 @@ class Index
     } // end updateAssetGradeInDb
 
     public function createAuditMasterRecord($site) {
-        error_log("Inside back-end createAuditMasterRecord");
+        // error_log("Inside back-end createAuditMasterRecord");
         include ("connection.php");
         header('Content-Type: application/json');
         $status = 'in-progress';
@@ -158,8 +158,8 @@ class Index
         $array = array();
         if($table == "audit_forward") {
             /* Call HELPER function here, which will create a record in audit_forward table for this asset.
-               So when you update the asset's grade a record will exist where the changes will be executed.
-               - since php is synchronous, the record should be created first before the next query below. */
+               So when user update the asset's grade in UI a record will exist where the changes will be executed.
+               - since php is synchronous the record should be created first before the next query below. */
             $createRecordReturnValue = $this->createForwardCheckAssetRecord($serial, $masterId);
             $array[4] = $createRecordReturnValue;
             /* IF SERIAL IS ALREADY IN TABLE, NOTIFY USER & DO NOT INCREASE THE SYSTEM CHECK COUNT */
@@ -201,7 +201,7 @@ class Index
             // error_log("Inside getAssetGradeDataFromCep conditional");
             $rows = $result->fetch_all(MYSQLI_ASSOC);
 
-            /* Conditional below handles if duplicate records are returned for same serial,
+            /* Duplicate Records Conditional: handles if duplicate records are returned for same serial,
                which can be determined by more than one row returning from query */
             if(count($rows) > 1) {
                 // return html with a List of all the records
@@ -228,12 +228,13 @@ class Index
                 // error_log("serialList Entire ARRAY:..................... ". print_r($array, true));
                 echo json_encode($array);
                 exit;
-              /* Conditional below handles if no records are returned for a serial, so the serial does not exist in CEP */
+              /* Serial Does Not Exist In CEP Conditional: handles if no records are returned for a serial, so the serial does not exist in CEP */
             } elseif(count($rows) < 1) {
                 $array = array(
                     0 => "<h3>No records found for serial \"".$serial."\", Test Failed</h3>",
                     1 => "empty"
                 );
+                if($createRecordReturnValue == "record exists") $array[5] = $createRecordReturnValue;
                 echo json_encode($array);
                 exit;
             }
@@ -369,7 +370,7 @@ class Index
     } // end getAssetGradeDataFromCep
 
     public function getAssetGradesFromDb($serial, $table, $masterId) {
-        error_log("Inside getAssetGradesFromDb serial: ". $serial);
+        // error_log("Inside getAssetGradesFromDb serial: ". $serial);
         include ("connection.php");
         header('Content-Type: application/json');
 
@@ -411,11 +412,9 @@ class Index
                     5 => ($rows[0]['room_grade'] == null ? "" : $rows[0]['room_grade']),
                     6 => ($rows[0]['grid_grade'] == null ? "" : $rows[0]['grid_grade']), 
                     7 => ($rows[0]['sshable_grade'] == null ? "" : $rows[0]['sshable_grade']),
-                    8 => ($rows[0]['purpose1_grade'] == null ? "" : $rows[0]['purpose1_grade']),
-                    9 => ($rows[0]['purpose2_grade'] == null ? "" : $rows[0]['purpose2_grade']),
-                    10 => ($rows[0]['legacy1_grade'] == null ? "" : $rows[0]['legacy1_grade']),
-                    11 => ($rows[0]['legacy2_grade'] == null ? "" : $rows[0]['legacy2_grade']),
-                    12 => $date
+                    8 => ($rows[0]['legacy1_grade'] == null ? "" : $rows[0]['legacy1_grade']),
+                    9 => ($rows[0]['legacy2_grade'] == null ? "" : $rows[0]['legacy2_grade']),
+                    10 => $date
                 );
             }
             
@@ -428,7 +427,7 @@ class Index
     
     /* Function is used by both Forward and Reverse Checks to submit grades to DB for CEP data integrity check */
     public function submitAssetToDb($serial, $masterId, $table) {
-        error_log("submitAssetToDb table: ". $table);
+        // error_log("submitAssetToDb table: ". $table);
         include ("connection.php");
         header('Content-Type: application/json');
 
@@ -451,10 +450,6 @@ class Index
                         + COALESCE(temp.grid_grade ='fail', 0) + COALESCE(temp.sshable_grade ='fail', 0)
                         FROM (SELECT * FROM $table) temp WHERE temp.system_serial = ? && temp.master_id = ?) * 1.428)),
 
-                        origin.purpose_score = (SELECT 10 - ROUND((SELECT sum(COALESCE(temp.purpose1_grade ='fail', 0))
-                        + COALESCE(temp.purpose2_grade='fail', 0)
-                        FROM (SELECT * FROM $table) temp WHERE temp.system_serial = ? && temp.master_id = ?) * 5)),
-
                         origin.legacy_score = (SELECT 10 - ROUND((SELECT sum(COALESCE(temp.legacy1_grade ='fail', 0))
                         + COALESCE(temp.legacy2_grade='fail', 0)
                         FROM (SELECT * FROM $table) temp WHERE temp.system_serial = ? && temp.master_id = ?) * 5)),
@@ -476,9 +471,8 @@ class Index
             // error_log("Inside prepare");
             $array = array();
             if($table == "audit_forward") {
-                mysqli_stmt_bind_param($stmt, "sisisis", $serial, $masterId, $serial, $masterId, $serial, $masterId, $serial);
+                mysqli_stmt_bind_param($stmt, "sisis", $serial, $masterId, $serial, $masterId, $serial);
                 mysqli_stmt_execute($stmt);
-                echo json_encode($stmt);
                 
             } else { // if a Reverse Check is being done
                 mysqli_stmt_bind_param($stmt, "sis", $serial, $masterId, $serial);
@@ -499,7 +493,7 @@ class Index
                     $array[2] = $stmt;
                 
                 }  else {
-                    return (array('status' => 'error','message' => $link->error));
+                    echo json_encode(array('status' => 'error','message' => $link->error));
                 }
             }
             /* update the side-bar serial list to show newly completed serial numbers with green dot */
@@ -508,14 +502,14 @@ class Index
             echo json_encode($array);
 
         } else {
-            return (array('status' => 'error','message' => $link->error));
+            echo json_encode(array('status' => 'error','message' => $link->error));
         }
     } // end of submitAssetToDb
 
     /* REMOVE QUERY: This query does not need to check for duplicates.
        It thus has no purpose if it's not checking for duplicates. */
     public function checkSerialInCep($serial, $masterId) {
-        error_log("Inside checkSerialInCep serial: ". $serial);
+        // error_log("Inside checkSerialInCep serial: ". $serial);
         include ("connection.php");
         header('Content-Type: application/json');
         
@@ -553,7 +547,7 @@ class Index
        a record into the audit_forward table with the serial and master Id numbers.
        So a record will exist to save grade changes to from the UI. */
     public function createForwardCheckAssetRecord($serial, $masterId) {
-        error_log("Inside back-end createForwardCheckAssetRecord");
+        // error_log("Inside back-end createForwardCheckAssetRecord");
         include ("connection.php");
         header('Content-Type: application/json');
         
@@ -566,7 +560,7 @@ class Index
         if($stmt = $link->prepare($sql)){
             mysqli_stmt_bind_param($stmt, "si", $serial, $masterId);
             mysqli_stmt_execute($stmt);
-            error_log("createForwardCheckAssetRecord AFFECTED ROWS: ". mysqli_affected_rows($link));
+            // error_log("createForwardCheckAssetRecord AFFECTED ROWS: ". mysqli_affected_rows($link));
             // echo mysqli_affected_rows($stmt);
 
             // If affected rows is zero,
@@ -608,8 +602,8 @@ class Index
 
     /* This function retrieves the count for half of the hardware systems of a given site */
     public function getForwardCheckSystemsTotal($site, $masterId) {
-        error_log("getForwardCheckSystemsTotal site: ". $site);
-        error_log("getForwardCheckSystemsTotal masterId: ". $masterId);
+        // error_log("getForwardCheckSystemsTotal site: ". $site);
+        // error_log("getForwardCheckSystemsTotal masterId: ". $masterId);
         include ("connection.php");
         header('Content-Type: application/json');
         
@@ -653,8 +647,8 @@ class Index
 
             /* Below convert total value from a string to an integer, so it can be inserted into database as integer */
             $total = intval($rows[0]['total']);
-            error_log("getForwardCheckSystemsTotal total: ". $total);
-            error_log("getForwardCheckSystemsTotal getType total: ". gettype($total));
+            // error_log("getForwardCheckSystemsTotal total: ". $total);
+            // error_log("getForwardCheckSystemsTotal getType total: ". gettype($total));
 
             $subSql = "UPDATE audit_master
                         SET forward_asset_total = ?
@@ -682,7 +676,7 @@ class Index
     public function submitFinalResultsToMaster($masterId) {
         include ("connection.php");
         header('Content-Type: application/json');
-        error_log("submitFinalResultsToMaster Inside");
+        // error_log("submitFinalResultsToMaster Inside");
 
         /* Below query calculates total counts and grades for a particular master id
            when the 'submit Final Results' button is clicked */
@@ -703,7 +697,7 @@ class Index
          if ($result = mysqli_query($link, $sql)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
-            error_log("submitFinalResultsToMaster rows array: ". print_r($rows, true));
+            // error_log("submitFinalResultsToMaster rows array: ". print_r($rows, true));
             // error_log("getForwardCheckSystemsTotal total: ". $rows[0]['total']);
 
             /* Calculate Final Test scores */

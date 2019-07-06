@@ -26,17 +26,8 @@
         <div id="random-check-container">
             <div><div class="serial-check-header sideHeaderTitle">System Check <span id="current-asset"></span> of <span id="total-assets"></span></div></div> 
             <div><form id="searchForm" onsubmit="openSerialSearchModal($('#search').val(), createdMasterId, 'audit_forward'); return false;" method="post">
-                <input type="text" id="search" placeholder="Enter Serial Number" name="search"><button class="searchButton" type="submit">Submit<img id="" src="public/images/search_icon_2.png" alt=""></button>
+                <input type="text" id="search" placeholder="Enter Serial Number" name="search">
             </form></div>
-            <div class="system-found-div">
-                <div class="sideHeaderTitle">System Found in CEP?</div>
-                <!-- <select class="system-found-select-box" onchange="updateGradeInMaster(createdMasterId, $(this).val(), 'test_1')"> -->
-                <select class="system-found-select-box" onchange="updateAssetGrade('audit_forward', 'asset_found_grade', $(this).val(), createdMasterId, submittedSerial);">
-                    <option value="" disabled="" selected="">Select</option>
-                    <option value="pass">Yes</option>
-                    <option value="fail">No</option>
-                </select>
-            </div>
             <div class="forward-serial-list">
             </div>
         </div>
@@ -120,13 +111,20 @@
             $("#reverse-check-container, #content-reverse-check").hide();
             $("#random-check-container, #content-random-check").show();
             getForwardCheckSystemsTotal(selectedSite);
+            // displayedSerial = $(".general-content-random-check .serialTitle").text();
 
         } else { // if Reverse Check
             $(".audit-title").text("Reverse Check");
             $("#random-check-container, #content-random-check").hide();
             $("#reverse-check-container, #content-reverse-check").show();
+            // add highlight to left menu item
+            var displayedSerial = $(".general-content-reverse-check .serialTitle").text();
+            if(displayedSerial.length) {
+                $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "active" );
+            }
+
         }
-        // $(id).toggle();
+
     }
 
     function getForwardCheckSystemsTotal(site) {
@@ -150,6 +148,11 @@
                     $("#current-asset").text(data[1]);
                     if(data[2]) { // If an html serial list exists then display it in UI
                         $(".forward-serial-list").html(data[2]);
+                        // add highlight to left menu item
+                        var displayedSerial = $(".general-content-random-check .serialTitle").text();       
+                        if(displayedSerial.length) {
+                            $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "active" );
+                        }
                     }
                 } else { // if no 'assets checked' count exists then just display 0
                     $("#current-asset").text(0);
@@ -160,13 +163,10 @@
     }
 
     function getAssetGradeData(serial, masterId, table, noAlert){
-        console.log("This is the THIS 1st Line: ", this);
         $("#error-container").hide();
         if(table === "audit_forward") {
             removePopup();
             // remove any previous-grade variables set for Test 4 & 5 (Purpose & Legacy Check)
-            purpose1Grade = "";
-            purpose2Grade = "";
             legacy1Grade = "";
             legacy2Grade = "";
         }
@@ -199,11 +199,15 @@
                 if(data[1] === "duplicates" || data[1] === "empty") { // if duplicate or non-existent serial numbers found for forward or reverse check            
                     $("#error-container").html(data[0]);
                     $("#error-container").show();
-                    // $("#content-random-check").html(data[0]); 
-                    // $("#content-reverse-check").show();
-                    if(table === "audit_forward") {
+  
+                    /* In the case a user doing a Forward Check clicks on a serial number menu item but the serial does not exist in CEP:
+                       An array with 3 values will be returned and the indeces will be [0] = html, [1] = "empty", and [5] = "record exists".
+                       Because of index [1] = "empty" the current conditional scope is accessed. Because the table will be "audit_forward"
+                       the below conditional would be accessed and the Forward Check asset total would be incremented. But the asset already exists
+                       and has been counted so incrementing is not necessary, so I added the data[5] check. Which basically says, if the record exists don't go into this conditional
+                       and increment the total count */
+                    if(table === "audit_forward" && !data[5]) { // if table equals 'audit_forward AND data[5] ("record exists") does not exist
                         incrementAssetCheckedTotalAndFoundStatus('fail', table);
-                        $(".system-found-div").show();
                     } else {
                         /* The below conditional will re-add the 'active' class to the serial numbers
                         div container (if it exists in the element). This is done becuase the active
@@ -236,7 +240,7 @@
                         return;
                     }
                     incrementAssetCheckedTotalAndFoundStatus('pass', table);
-                    $(".system-found-div").show();
+                
                     
                 } else { // if successful 'Reverse Check' serial search..
                     $(".general-content-reverse-check").html(data[0]);
@@ -250,8 +254,10 @@
                     If the object has the serial already it means the serial link has been clicked, so a query is sent
                     to retrieve previous grades selected to show in the UI. If serial is not in object, it means serial
                     has not been clicked, so the serial is added, however, retrieval query is not invoked.
+                    - data[5] is for the case that a test record already exists for a serial searched for but the serial does not
+                    exist in CEP. So there is no need to query for any non existent grades.
                 */
-                if(serialObj[serial]) {
+                if(serialObj[serial] && !data[5]) {
                     // run getAssetGrades function
                     getAssetGrades(serial, table, masterId);
                 } else {
@@ -264,7 +270,13 @@
     }
 
     /* Helper function */
-    function incrementAssetCheckedTotalAndFoundStatus(grade, table) {        
+    function incrementAssetCheckedTotalAndFoundStatus(grade, table) {     
+        /* If Column Is 'asset_found_grade' And Grade is 'fail' the below function will auto update 'review_status' to 'complete'.
+            - this function is called first so that in the above case, the database can be updated first with a 'complete' value. A new serial
+              menu list will be generated and inserted in the ajax 'success' function and if the review status is 'complete' a check mark
+              will be added next to the list item. */
+        updateAssetGrade(table, "asset_found_grade", grade, createdMasterId, submittedSerial);
+
         // If Forward-check: update total count of serial numbers searched
         if(table === "audit_forward") {
             // serialCheckCount++;
@@ -297,10 +309,6 @@
                 } //success
             }); //end ajax
         }
-        // updateGradeInMaster(createdMasterId, 'fail', 'test_1');
-        updateAssetGrade(table, "asset_found_grade", grade, createdMasterId, submittedSerial);
-        $(".system-found-select-box").val(grade);
-
     }
 
     function getAssetGrades(serial, table, masterId){
@@ -321,27 +329,26 @@
 
                 
                 $(".sys-owner-select-box option[value='"+data[1]+"']").attr('selected','selected');
-                $(".system-select-box option[value='"+data[2]+"']").attr('selected','selected');
+                $(".system-select-box option[value='"+data[2]+"']").attr('selected','selected'); // manufacturer
                 $(".host-select-box option[value='"+data[3]+"']").attr('selected','selected');
                 $(".ip-select-box option[value='"+data[4]+"']").attr('selected','selected');   
                 $(".room-select-box option[value='"+data[5]+"']").attr('selected','selected');
                 $(".grid-select-box option[value='"+data[6]+"']").attr('selected','selected');
                 $(".ssh-select-box option[value='"+data[7]+"']").attr('selected','selected');
 
-                if(table === "audit_reverse" && !!data[8]) {
-                    // Update 'asset found' value
-                    $(".asset-select-box option[value='"+data[0]+"']").attr('selected','selected');
-                    $(".asset-score-reverse-check").html(data[8]);
-                    $(".update-date").text(data[9]);
-
+                if(table === "audit_reverse") {
+                    if(!!data[8]) { // if data[8] is true (if score exists)
+                        $(".asset-score-reverse-check").html(data[8]);
+                        
+                    }
+                    $(".update-date").text(data[9]);         
+                    $(".asset-select-box option[value='"+data[0]+"']").attr('selected','selected');       
                 } else if(table === "audit_forward") { // if table is 'audit_forward', retrieve additional test values'
                      // Update 'asset found' value below forward-check search field
                     $(".system-found-select-box option[value='"+data[0]+"']").attr('selected','selected');
-                    purpose1Grade = data[8];
-                    purpose2Grade = data[9];
-                    legacy1Grade = data[10];
-                    legacy2Grade = data[11];
-                    $(".update-date").text(data[12]);
+                    legacy1Grade = data[8];
+                    legacy2Grade = data[9];
+                    $(".update-date").text(data[10]);
                     // Test 2 through 5 scores can be added here..
                 }
 
@@ -487,6 +494,9 @@
     
     function submitAsset(serial, masterId, table){
 
+        // if any select box is false
+
+            //alert("You must grade all data points including the 'Legacy Check' at the bottom");
 		var data = {
 			"action": "submitAsset",
             "serial": serial,
@@ -507,13 +517,11 @@
                     if($("#current-asset").text() === $("#total-assets").text()) {
                         alert("You have completed the Forward Check");
                         $("#searchForm, .system-found-div").hide();
-
                     } else {
+                        // Reset the system-found select box to the unselected value at index 0
                         $(".system-found-select-box").get(0).selectedIndex = 0;
                         alert("Asset Graded, Please search for next asset");
-
                     }
-
                     // $(".asset-score-random-check").html(data[1]);
                 } else {
                     // display the Asset Score div with score retrieved from database.
@@ -525,13 +533,19 @@
                    class is removed when the serial list is re-populated.
                    - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
                 if($("div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
-                    // add new list
-                    $(".reverse-serial-list").html(data[0]);
+                    if(table === "audit_forward") {
+                        $(".forward-serial-list").html(data[0]);
+                    } else {
+                        $(".reverse-serial-list").html(data[0]);
+                    }
                     // now add active class back to serial div
                     $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
-                } else {
-                    // outside of conditional add new list like normal
-                    $(".reverse-serial-list").html(data[0]);
+                } else { // if the active class doesn't exist only add the updated html from the back-end
+                    if(table === "audit_forward") {
+                        $(".forward-serial-list").html(data[0]);
+                    } else {
+                        $(".reverse-serial-list").html(data[0]);
+                    }
                 }
              
 				// $(".loader").hide();	

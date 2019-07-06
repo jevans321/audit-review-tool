@@ -97,6 +97,13 @@ h2 span, h3 span, h4 span {
     color: #484b86;
 }
 
+#search {
+    border-radius: 3px;
+    border: 1px solid #484b86;
+    padding: 4px 8px;
+    width: 190px;
+}
+
 #error-container {
     display: inline-block;
     width: 1140px;
@@ -158,10 +165,6 @@ h2 span, h3 span, h4 span {
     display: inline-block;
     margin-left: 30px;
     width: 400px;
-}
-
-.grade-select-box {
-    /* float:  right; */
 }
 
 .location-content-random-check > div,
