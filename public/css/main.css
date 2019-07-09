@@ -183,7 +183,7 @@ h2 span, h3 span, h4 span {
 
 .general-content-reverse-check > div:first-child,
 .general-content-random-check > div:first-child {
-   border-bottom: none;
+   border-bottom: 1px solid #484b86;
  }
 
 .general-content-random-check div > div,
@@ -352,21 +352,32 @@ h2 span, h3 span, h4 span {
 }
 
 .dot-green-sml {
-    border-radius: 50%;
+    background: url("./../images/Tick_Mark_Dark-512.png");
+    background-size: 19px 23px;
+    background-repeat: no-repeat;
+    height: 20px;
+    width: 21px;
+    margin-right: 4px;
+
+    /* border-radius: 50%;
     height: 13px;
     width: 13px;
     background-color: #00b200;
     display: inline-block;
-    margin-right: 4px;
+    margin-right: 4px; */
 }
 
 .dot-orange-sml {
-    border-radius: 50%;
+    height: 18px;
+    width: 21px;
+    margin-right: 4px;
+
+    /* border-radius: 50%;
     height: 13px;
     width: 13px;
     background-color: orange;
     display: inline-block;
-    margin-right: 4px;
+    margin-right: 4px; */
 }
 
 .popup {

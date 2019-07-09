@@ -77,6 +77,7 @@
     var createdMasterId = 0;
     var selectedSite;
     var submittedSerial;
+    var isEdit; // Variable that signifies if a user has clicked on one of the dashboard row to view previous tests
     var serialCheckCount = 0; // Increment count on submit
     var serialObj = {};
     /* Variables for any existing 'Forward Check' grades in db. Used in the 'openPurpose' and openLegacy' modal functions */
@@ -92,7 +93,7 @@
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
 			type: "POST",
-			url: "./routes/audit-dash_class.php",
+			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
                 // var code = "<div class='site-results'></div>";
@@ -102,8 +103,22 @@
 		}); //end ajax
     }
 
+    function retrieveOldTest(masterId, site) { // pull masterId from UI row
+        // set createdMasterId variable
+        createdMasterId = masterId;
+        // set selectedSite variable, get site from UI row as well
+        selectedSite = site;
+        // set 'isEdit' variable to true
+        isEdit = true;
+        // hide the dashboard container
+        $("#dash-container").hide();
+        // show top menu
+        $("#top-container, #test-menu").show();
+    }
+
     function toggleContainers(elementId) {
         // $("#random-check-container, #reverse-check-container, #content-random-check, #content-reverse-check").hide();
+        $("#error-container").hide();
         $("#error-container").empty();
         /* If the Forward Check menu item selected, then calculate the Sites total number of systems that need to be checked */
         if(elementId === "#random-check-container") {
@@ -117,7 +132,11 @@
             $(".audit-title").text("Reverse Check");
             $("#random-check-container, #content-random-check").hide();
             $("#reverse-check-container, #content-reverse-check").show();
-            // add highlight to left menu item
+            /* create serial-list menu from DB if it exists */
+            if(isEdit) {
+                createSerialList(createdMasterId, "audit_reverse");
+            }
+            /* add highlight to left menu item */
             var displayedSerial = $(".general-content-reverse-check .serialTitle").text();
             if(displayedSerial.length) {
                 $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "active" );
@@ -257,7 +276,7 @@
                     - data[5] is for the case that a test record already exists for a serial searched for but the serial does not
                     exist in CEP. So there is no need to query for any non existent grades.
                 */
-                if(serialObj[serial] && !data[5]) {
+                if((serialObj[serial] || isEdit) && !data[5]) {
                     // run getAssetGrades function
                     getAssetGrades(serial, table, masterId);
                 } else {
@@ -459,7 +478,7 @@
 			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {	
-                console.log("Object from from createAuditMasterRecord: ", data);
+                console.log("Object from createAuditMasterRecord: ", data);
                 selectedSite = data[0];
                 createdMasterId = data[1];
                 $("#top-container, #test-menu").show();
@@ -493,9 +512,18 @@
     }
     
     function submitAsset(serial, masterId, table){
-
-        // if any select box is false
-
+        /* Below Conditional: check if all CEP data fields have been graded. */
+        if(table === 'audit_reverse') {
+            var isTrue = true;
+            $( ".general-content-reverse-check select" ).each(function() {
+                if(!$( this ).val()) {
+                    alert("Please grade all data points");
+                    isTrue = false;
+                    return false;
+                }
+            })
+            if(!isTrue) return;
+        }
             //alert("You must grade all data points including the 'Legacy Check' at the bottom");
 		var data = {
 			"action": "submitAsset",
@@ -510,6 +538,10 @@
 			data: data,
 			success: function(data) {	
                 console.log("submitAsset data: ", data);
+                if(!data) {
+                    alert("Please grade all data points");
+                    return;
+                }
                 if(table === "audit_forward") {
                     $(".general-content-random-check, .location-content-random-check, .additional-tests-random-check").empty();
                     /* First conditional: If the system count matches the total count of systems
@@ -519,7 +551,7 @@
                         $("#searchForm, .system-found-div").hide();
                     } else {
                         // Reset the system-found select box to the unselected value at index 0
-                        $(".system-found-select-box").get(0).selectedIndex = 0;
+                        // $(".system-found-select-box").get(0).selectedIndex = 0;
                         alert("Asset Graded, Please search for next asset");
                     }
                     // $(".asset-score-random-check").html(data[1]);
@@ -548,6 +580,28 @@
                     }
                 }
              
+				// $(".loader").hide();	
+
+			} //success
+		}); //end ajax
+    }
+
+    function areAllCepFieldsGraded(serial, masterId, table) {
+        var data = {
+            "action": "areAllCepFieldsGraded",
+            "serial": serial,
+            "masterId": masterId,
+            "table": table
+        };
+        
+		data = $(this).serialize() + "&" + $.param(data);
+		$.ajax({
+			type: "POST",
+			url: "./routes/audit_class.php",
+			data: data,
+			success: function(data) {	
+                console.log("areAllCepFieldsGraded data: ", data);
+                return data;
 				// $(".loader").hide();	
 
 			} //success
@@ -618,6 +672,36 @@
 			} //success
 		}); //end ajax
     }
+
+    function createSerialList(masterId, table) {
+        var data = {
+            "action": "createSerialList",
+            "masterId": masterId,
+            "table": table,
+            "fromFrontend": true
+		};
+		data = $(this).serialize() + "&" + $.param(data);
+		$.ajax({
+			type: "POST",
+			url: "./routes/audit_class.php",
+			data: data,
+			success: function(data) {	
+                console.log("createSerialList data: ", data);
+                if(!data) { // if no records exists
+                    // return out of function?
+                    return;
+                }
+                if(table === "audit_reverse") {
+                    // remove generate button div
+                    $(".gen-serials-btn").remove();
+                    $(".reverse-serial-list").html(data);
+                }
+				// $(".loader").hide();	
+
+			} //success
+		}); //end ajax
+    }
+
 
     var xhr;
     function getApi(table){
