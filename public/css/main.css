@@ -400,83 +400,188 @@ h2 span, h3 span, h4 span {
  }
 
 
- /* duplicate-content CSS */
+ /*
 
+    duplicate-content table-div styling
+
+*/
 
 .duplicate-content > div:first-child {
     background-color: lightgray;
     border: none;
-  }
+}
   
-  .duplicate-content > div:first-child div {
+.duplicate-content > div:first-child div {
     border-right: solid 1px white;
     font-weight: bold;
     font-family: Verdana;
     font-size: small;
-  }
+}
 
   .duplicate-content > div > div:last-child {
     border-right: none;
   }
   
-  /* .duplicate-content > div:first-child div:nth-child(5) {
-    text-align: center;
-  } */
   
-  .duplicate-content > div {
+.duplicate-content > div {
     border-bottom: 1px solid #ddd;
-      text-align: center;
-  }
-  
-  .duplicate-content > div:nth-child(odd):hover { 
-      background-color: #F6FFE0;
-  }  
-  .duplicate-content > div:nth-child(even):hover {
-      background-color: #F6FFE0;
-  }
-  .duplicate-content > div:nth-child(even) {
-      background-color: #F8F8F8;
-  }
-  
-  .duplicate-content div div {
+    text-align: center;
+}
+
+.duplicate-content > div:nth-child(odd):hover { 
+    background-color: #F6FFE0;
+}  
+.duplicate-content > div:nth-child(even):hover {
+    background-color: #F6FFE0;
+}
+.duplicate-content > div:nth-child(even) {
+    background-color: #F8F8F8;
+}
+
+.duplicate-content div div {
     display: inline-flex;
     justify-content: left;
     align-items: center;
     width: 120px;
     height: 18px;
-  /*   vertical-align: middle; */
+    /*   vertical-align: middle; */
     padding: 12px 0;
     padding-left: 8px;
     white-space: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-  /*   align-items: center; */
-  }
-  
-  .duplicate-content div div:nth-child(1) {
+    /*   align-items: center; */
+}
+
+.duplicate-content div div:nth-child(1) {
     width: 136px;
-  }
-  
-  .duplicate-content div div:nth-child(2) {
+}
+
+.duplicate-content div div:nth-child(2) {
     width: 110px;
-  }
-  
-  .duplicate-content div div:nth-child(3),
-  .duplicate-content div div:nth-child(4) {
+}
+
+.duplicate-content div div:nth-child(3),
+.duplicate-content div div:nth-child(4) {
     width: 210px;
-  }
-  
-  .duplicate-content div div:nth-child(5) {
-      width: 160px;
-  /* 	text-align: left;
-      overflow-y: auto;
-      overflow-x: hidden; */
-  }
-  
-  .duplicate-content div div:nth-child(6) {
+}
+
+.duplicate-content div div:nth-child(5) {
+    width: 160px;
+/* 	text-align: left;
+    overflow-y: auto;
+    overflow-x: hidden; */
+}
+
+.duplicate-content div div:nth-child(6) {
     width: 86px;
-  }
-  
-  .duplicate-content div div:nth-child(7) {
+}
+
+.duplicate-content div div:nth-child(7) {
     width: 150px;
-  }  
+}
+
+
+  /*
+  
+    Reporting Page
+  
+  */
+
+.ipScan input {
+    border: 1px solid #484b86;
+    border-radius: 3px;
+}
+
+table, caption, tbody, tfoot, thead, tr, th, td {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    font-size: 100%;
+    vertical-align: baseline;
+    background: transparent;
+}
+
+.maincontainerfull {
+    padding-right: 15px;
+    padding-left: 50px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+div#message {
+    line-height: 40px;
+    font-size: medium;
+    position: absolute;
+    top: 50px;
+    left: 0;
+    width: calc(100% - 10px);
+    padding-left: 10px;
+    z-index: 10000;
+    color: #333;
+}
+
+.hideMessage {
+    opacity: 0;
+}
+
+.actions {
+    margin-top: 100px;
+}
+
+.multiSelectButton,
+.maincontainerfull input,
+.maincontainerfull select {
+    line-height: 30px;
+    width: 250px;
+    padding-left: 10px;
+    font-family: sans-serif;
+    border-radius: 4px;
+    height: 30px;
+    /* border: 1px solid var(--borderColor); */
+    /* color: var(--textPrimaryColor); */
+    /* background: #fff; */
+    text-align: left;
+}
+
+.reportButton {
+    width: 12vw;
+    margin: auto;
+    /* background: var(--colorButton); */
+    background: #d5d7f9;
+    line-height: 25px;
+    /* color: #fff; */
+    color: #484b86;
+    cursor: pointer;
+    text-align: center;
+    border-style: none;
+}
+
+span.csvDownload {
+    width: 135px;
+    display: inline-block;
+    line-height: 35px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    float: right;
+    text-align: right;
+    padding-right: 10px;
+    color: #ffffff;
+    background: var(--colorButton) url(/public/images/icon-multiupdate.svg) no-repeat;
+    cursor: pointer;
+    background-size: 20px;
+    background-position: left;
+    background-position-x: 15px;
+}
+
+.recordCount {
+    color: var(--textPrimaryColor);
+    font-size: smaller;
+}
+
+table.contentTable {
+    border: 1px solid var(--borderColor);
+    width: 100%;
+    font-family: "Verdana";
+}

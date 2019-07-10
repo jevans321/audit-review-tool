@@ -459,7 +459,7 @@ class Index
             or Total - (sum * 1/11) = round(score)
                  10  - (sum * 0.9) = round(score)
         */
-        if($table == "audit_forward") {
+        if($table == "audit_forward") { // Forward Check Test
             $sql = "UPDATE $table origin
                     SET origin.cep_score = (SELECT 10 - ROUND((SELECT sum(COALESCE(temp.system_owner_grade ='fail', 0))
                         + COALESCE(temp.system_type_grade='fail', 0) + COALESCE(temp.hostname_grade ='fail', 0)
@@ -472,7 +472,7 @@ class Index
                         FROM (SELECT * FROM $table) temp WHERE temp.system_serial = ? && temp.master_id = ?) * 5)),
                         origin.review_status = 'complete'
                     WHERE origin.system_serial = ?";
-        } else {
+        } else { // Reverse Check Test
             $sql = "UPDATE $table origin
                     SET origin.score = (SELECT 10 - ROUND((SELECT sum(COALESCE(temp.system_type_grade ='fail', 0))
                         + COALESCE(temp.hostname_grade ='fail', 0) + COALESCE(temp.ip_grade ='fail', 0)
@@ -523,6 +523,28 @@ class Index
         }
     } // end of submitAssetToDb
 
+    public function checkIfComplete($table, $masterId) {
+        // error_log("Inside checkSerialInCep serial: ". $serial);
+        include ("connection.php");
+        header('Content-Type: application/json');
+        
+        $sql = "SELECT count(*) FROM $table WHERE master_id = $masterId AND COALESCE(review_status, '') = ''";
+
+         if ($result = mysqli_query($link, $sql)) {
+
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+            // error_log("checkSerialInCep rows array: ". print_r($rows, true));
+            
+            /* if count is 0, meaning all complete
+                Update master table saying that the current check is complete
+            */
+            echo json_encode();
+
+         } else {
+            return (array('status' => 'error','message' => $link->error));
+        }
+    }
+
     /* REMOVE QUERY: This query does not need to check for duplicates.
        It thus has no purpose if it's not checking for duplicates. */
     public function checkSerialInCep($serial, $masterId) {
@@ -530,7 +552,6 @@ class Index
         include ("connection.php");
         header('Content-Type: application/json');
         
-        /* The query below will select */
         $sql = "SELECT system_serial FROM cep_hw WHERE system_serial = '$serial'";
 
          if ($result = mysqli_query($link, $sql)) {
@@ -653,10 +674,10 @@ class Index
            - Count only the systems with grid locations where
            - Divide the count by 2
            - Echo the result */
-        $sql2 = "SELECT ROUND(count(*) / 100) as total FROM cep_hw WHERE hw_site = '$site'
+        $sqlAlt = "SELECT ROUND(count(*) / 100) as total FROM cep_hw WHERE hw_site = '$site'
                 AND COALESCE(grid_id, '') <> '' AND grid_id <> 0";
 
-         if ($result = mysqli_query($link, $sql2)) {
+         if ($result = mysqli_query($link, $sqlAlt)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             // error_log("getForwardCheckSystemsTotal rows array: ". print_r($rows, true));

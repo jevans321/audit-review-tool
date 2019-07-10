@@ -319,7 +319,7 @@
                     /* Below conditional: if data[2] exists it means all required assets for
                        Forward Check have been searched for */
                     if(data[2]) {
-                        alert("You've completed all checks!");
+                        alert("This is the last of the Forward Check systems required.");
                         // hide search box
                         // replace search box with "Forward Check Complete"
                         // "Total number of systems checked"
