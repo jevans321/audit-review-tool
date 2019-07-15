@@ -22,8 +22,13 @@ class Index
 		
 		if($stmt = mysqli_prepare($link, $sql)){
 			mysqli_stmt_bind_param($stmt, "sis", $grade, $masterId, $serial);
-            mysqli_stmt_execute($stmt);      
-            // echo json_encode($stmt);
+            mysqli_stmt_execute($stmt);
+            /* This current function updateAssetGradeInDb is also being used in the function getAssetGradeDataFromCep to
+                update a 'review_status' column. This is done on the back-end and I don't want to echo. In the cases I'm calling
+                this function from the front-end I want to echo back. This conditional allows me to do this. */
+            if($column != "review_status") { 
+                echo json_encode($stmt);
+            }
 
 		} else {
 			echo json_encode(array('status' => 'error','message' => $link->error));
@@ -63,8 +68,8 @@ class Index
         }
     } //end createAuditMasterRecord
     
-    public function addRandomAssetsToTable($masterId, $site) {
-        // error_log("Inside back-end addRandomAssetsToTable ID: ". $id);
+    public function generateReverseCheckAssets($masterId, $site) {
+        // error_log("Inside back-end generateReverseCheckAssets ID: ". $id);
 
 		include ("connection.php");
         header('Content-Type: application/json');
@@ -86,7 +91,7 @@ class Index
                 WHERE hw_site = ? && grid_id <> 0 && COALESCE(grid_id, '') <> '' && system_serial NOT IN
                 (SELECT system_serial FROM audit_reverse)
                 ORDER BY RAND()
-                LIMIT 20";
+                LIMIT 3";
 
         if($stmt = mysqli_prepare($link, $sql)){
             // Bind variables to the prepared statement as parameters
@@ -105,7 +110,7 @@ class Index
             echo json_encode(array('status' => 'error','message' => $link->error));
         }
                     
-    } // end addRandomAssetsToTable
+    } // end generateReverseCheckAssets
 
     /* This is a Helper function that retrieves the randomly generated cep assests 'serial numbers' from the
        audit_reverse table associated with the provided master id.
@@ -233,17 +238,21 @@ class Index
                     $serialList = $this->createSerialListFromDb("audit_reverse", $masterId, false);
                     $array[2] = $serialList; //substr($serialList, 0, -3);
                 }
-
+                if ($createRecordReturnValue == "record exists") {
+                    $array[5] = $createRecordReturnValue;
+                }
                 // error_log("serialList Entire ARRAY:..................... ". print_r($array, true));
                 echo json_encode($array);
                 exit;
               /* Serial Does Not Exist In CEP Conditional: handles if no records are returned for a serial, so the serial does not exist in CEP */
             } elseif(count($rows) < 1) {
                 $array = array(
-                    0 => "<h3>No records found for serial \"".$serial."\", Test Failed</h3>",
+                    0 => "<span class='audit-title'>No records found for serial \"".$serial."\"</span>",
                     1 => "empty"
                 );
-                if($createRecordReturnValue == "record exists") $array[5] = $createRecordReturnValue;
+                if ($createRecordReturnValue == "record exists") {
+                    $array[5] = $createRecordReturnValue;
+                }
                 echo json_encode($array);
                 exit;
             }
@@ -273,6 +282,16 @@ class Index
                                 </div>
                             </div>";
             }
+            $display .= "<div>
+                            <div class='ssh-row'>SSHable:</div><div class='ssh-loader'></div>
+                            <div>
+                                <select class='ssh-select-box'  onchange='updateAssetGrade(\"$table\", \"sshable_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <option  value='' disabled='' selected=''>Select Grade</option>
+                                <option value='pass'>Yes</option>
+                                <option value='fail'>No</option>
+                                </select>
+                            </div>
+                        </div>";
             $sytemOwnerValue = $rows[0]['system_owner'] ? htmlentities($rows[0]['system_owner']) : "<i>Item not available</i>";
             $display .=  "<div>
                             <div>System Owner:&nbsp;<span id='sys-owner-row' class='span-static-val'>". $sytemOwnerValue ."</span></div>
@@ -345,31 +364,16 @@ class Index
                                 </select>
                             </div>
                         </div>";
-            $display .= "<div>
-                            <div>SSHable:&nbsp; <strong>Test 3</strong>, AUTO FILL THIS</div>
-                            <div>
-                                <select class='ssh-select-box'  onchange='updateAssetGrade(\"$table\", \"sshable_grade\", $(this).val(), $masterId, \"$serial\")'>
-                                <option  value='' disabled='' selected=''>Select Grade</option>
-                                <option value='pass'>Yes</option>
-                                <option value='fail'>No</option>
-                                </select>
-                            </div>
-                        </div>";
-
-            $display2 = "<div class='data-buttons text-center'><button style='margin: 10px 0; width: 100%;' onclick='getApi()' class='systemButton ajaxButton'>Automation Check</button>
-                                <button style='margin-bottom: 25px; width: 100%;' onclick='submitAsset(\"$serial\", $masterId, \"$table\")' class='systemButton ajaxButton'>Complete Asset Check</button></div>";
-            $display3 = "";
-            if($table == "audit_forward") {
-                $display3 .= "<div id='test5-div'>
-                                <h3>Test 5</h3>
-                                <div id='legacy-btn' onclick='openLegacyModal(createdMasterId, submittedSerial)'>Legacy Check</div>
-                            </div>";
+            $display2 = "";
+            if ($table == "audit_forward") {
+                $display2 .= "<div id='legacy-btn' onclick='openLegacyModal(createdMasterId, submittedSerial)'>Legacy Check</div>";
             }
+            $display2 .= "<div class='data-buttons text-center'><button style='margin: 10px 0; width: 100%;' onclick='runSsh($(\"#ip-row\").text(), \"$serial\", $masterId, \"$table\")' class='systemButton ajaxButton'>SSHable Test</button>              
+                          <button style='margin-bottom: 25px; width: 100%;' onclick='submitAsset(\"$serial\", $masterId, \"$table\")' class='systemButton ajaxButton'>Complete Asset Check</button></div>";
 
             $array[0] = $display;
             $array[1] = $display2;
             $array[2] = $table;
-            $array[3] = $display3;
             
             echo json_encode($array);
   
@@ -437,7 +441,7 @@ class Index
     /* Function is used by both Forward and Reverse Checks to submit grades to DB for CEP data integrity check */
     public function submitAssetToDb($serial, $masterId, $table) {
 
-        // check if all grades have been given:
+        // check if all grades have been given before allowing a user to submit the current asset as complete:
         $allGraded = $this->areAllCepFieldsGraded($serial, $masterId, $table);
         if(!$allGraded) { // if false (not all graded), echo false
             echo json_encode($allGraded);
@@ -522,28 +526,6 @@ class Index
             echo json_encode(array('status' => 'error','message' => $link->error));
         }
     } // end of submitAssetToDb
-
-    public function checkIfComplete($table, $masterId) {
-        // error_log("Inside checkSerialInCep serial: ". $serial);
-        include ("connection.php");
-        header('Content-Type: application/json');
-        
-        $sql = "SELECT count(*) FROM $table WHERE master_id = $masterId AND COALESCE(review_status, '') = ''";
-
-         if ($result = mysqli_query($link, $sql)) {
-
-            $rows = $result->fetch_all(MYSQLI_ASSOC);
-            // error_log("checkSerialInCep rows array: ". print_r($rows, true));
-            
-            /* if count is 0, meaning all complete
-                Update master table saying that the current check is complete
-            */
-            echo json_encode();
-
-         } else {
-            return (array('status' => 'error','message' => $link->error));
-        }
-    }
 
     /* REMOVE QUERY: This query does not need to check for duplicates.
        It thus has no purpose if it's not checking for duplicates. */
@@ -710,74 +692,6 @@ class Index
         }
     }
 
-    
-    public function submitFinalResultsToMaster($masterId) {
-        include ("connection.php");
-        header('Content-Type: application/json');
-        // error_log("submitFinalResultsToMaster Inside");
-
-        /* Below query calculates total counts and grades for a particular master id
-           when the 'submit Final Results' button is clicked */
-        $sql = "SELECT
-                    100 / COUNT(*) GradePercentageOfEachSystemFound,    
-                    sum(case when cep_score <= 6 then 1 else 0 end) CepFailedCount,
-                    sum(case when legacy_score <= 6 then 1 else 0 end) LegacyFailedCount,
-                    100 / (SELECT COUNT(*) FROM audit_forward WHERE master_id = $masterId AND review_status = 'complete') GradePercentageOfEachSystemChecked,
-                    (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_forward WHERE master_id = $masterId AND review_status = 'complete') ForwardAssetsNotFoundCount,
-                    (SELECT COUNT(*) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete' AND asset_found_grade = 'pass') ReverseFoundTotal,
-                    (SELECT sum(case when score <= 6 then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') ReverseScoreFailedCount,
-                    (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') ReverseAssetsNotFoundCount
-                FROM audit_forward
-                WHERE master_id = $masterId AND review_status = 'complete' AND asset_found_grade = 'pass'";
-
-
-         if ($result = mysqli_query($link, $sql)) {
-
-            $rows = $result->fetch_all(MYSQLI_ASSOC);
-            // error_log("submitFinalResultsToMaster rows array: ". print_r($rows, true));
-            // error_log("getForwardCheckSystemsTotal total: ". $rows[0]['total']);
-
-            /* Calculate Final Test scores */
-            /*  */
-            $test1Score = ROUND(100 - ($rows[0]['GradePercentageOfEachSystemChecked'] * $rows[0]['ForwardAssetsNotFoundCount']));
-            $test2Score = ROUND(100 - ($rows[0]['GradePercentageOfEachSystemFound'] * $rows[0]['CepFailedCount']));
-            // SSHABLE: $test3Score = 100 - ($rows[0][''] * $rows[0]['']);
-            $test5Score = ROUND(100 - ($rows[0]['GradePercentageOfEachSystemFound'] * $rows[0]['LegacyFailedCount']));
-            $test6Score = ROUND(100 - ($rows[0]['ReverseFoundTotal'] * $rows[0]['ReverseScoreFailedCount']));
-
-            // error_log("test1Score: ". $test1Score);
-            // error_log("test2Score: ". $test2Score);
-            // error_log("test4Score: ". $test4Score);
-            // error_log("test5Score: ". $test5Score);
-            // error_log("test6Score: ". $test6Score);
-
-            // Need to add Test 3
-            $sqlUpdate = "UPDATE audit_master                 
-                            SET test_1 = ?,
-                                test_2 = ?,
-                                test_5 = ?,
-                                test_6 = ?,
-                                review_status = 'complete'
-                            WHERE
-                                id = $masterId";
-
-            if($stmt = mysqli_prepare($link, $sqlUpdate)){
-                // Bind variables to the prepared statement as parameters
-                mysqli_stmt_bind_param($stmt, "iiii", $test1Score, $test2Score, $test5Score, $test6Score);
-                mysqli_stmt_execute($stmt);              
-                // echo json_encode($stmt);
-
-            } else {
-                echo json_encode(array('status' => 'error','message' => $link->error));
-            }
-
-            // echo json_encode($rows);
-
-         } else {
-            echo (array('status' => 'error','message' => $link->error));
-        }
-    }
-
     public function incrementAssetCheckedTotalAndFoundStatus($table, $masterId) {
 
         // error_log("Inside createSerialListFromDb serial: ". $serial);
@@ -826,13 +740,13 @@ class Index
 		}
     } // end updateAssetGradeInDb
 
-    /* Below Function checks if any of the seleced clumns is null or empty, if so a boolean is returned */
+    /* Below Function checks if all data fields for a reviewed system have been graded. Returns a boolean. */
     public function areAllCepFieldsGraded($serial, $masterId, $table) {
         // error_log("Inside checkSerialInCep serial: ". $serial);
         include ("connection.php");
         header('Content-Type: application/json');
         
-        /* The query below will select */
+        /* The query below will check if a selected column is null or empty. A boolean is then returned */
         $sql = "SELECT
                 sum(case when COALESCE(legacy1_grade, '') = '' then 1 else 0 end) legacy1,
                 sum(case when COALESCE(legacy2_grade, '') = '' then 1 else 0 end) legacy2,
@@ -865,11 +779,6 @@ class Index
         include ("connection.php");
         header('Content-Type: application/json');
 
-        // $sql = "SELECT audit_master.site, audit_master.score, audit_master.serialcheck_grade
-        //         FROM audit_master
-        //         JOIN audit_assets
-        //         ON audit_assets.master_id = audit_master.id
-        //         WHERE audit_master.status = 'complete' && audit_master.site = '$site'";
         $sql = "SELECT * FROM audit_master
                 WHERE site = '$site'";
 
@@ -878,7 +787,11 @@ class Index
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             // error_log("getSiteResultsFromDb ROWS: ". print_r($rows, true));
-            $display = "<div><span>Status</span><span>Site</span><span>Test 1</span><span>Test 2</span><span>Test 3</span><span>Test 5</span><span>Test 6</span><span>Date</span></div>";
+            if(count($rows) < 1) {
+                echo json_encode("no results");
+                exit;
+            }
+            $display = "<div><span>Status</span><span>Site</span><span title='Forward Check: Confirm system exists in CEP'>Test 1</span><span title='Forward Check: Confirm data integrity in CEP'>Test 2</span><span title='Forward Check: SSH Connection'>Test 3</span><span title='Forward Check: Legacy Deep Dive'>Test 5</span><span title='Reverse Check: Confirm data integrity on the floor'>Test 6</span><span>Date</span></div>";
             for ($i = 0; $i < count($rows); ++$i) {
                 $date = date('m-d-Y', strtotime($rows[$i]['updated']));
                 // capitalize site name
@@ -889,11 +802,16 @@ class Index
                     $status = 'Complete';
                 }
                 // Below, change colored dot color to green if test score is greater than given number, else dot color is red
-                $test1DotClass = htmlentities($rows[$i]['test_1']) >= 70 ? 'dot-green' : 'dot-red';
-                $test2DotClass = htmlentities($rows[$i]['test_2']) >= 70 ? 'dot-green' : 'dot-red';
-                $test3DotClass = htmlentities($rows[$i]['test_3']) >= 70 ? 'dot-green' : 'dot-red';
-                $test5DotClass = htmlentities($rows[$i]['test_5']) >= 70 ? 'dot-green' : 'dot-red';
-                $test6DotClass = htmlentities($rows[$i]['test_6']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test1DotClass = htmlentities($rows[$i]['test_1']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test2DotClass = htmlentities($rows[$i]['test_2']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test3DotClass = htmlentities($rows[$i]['test_3']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test5DotClass = htmlentities($rows[$i]['test_5']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test6DotClass = htmlentities($rows[$i]['test_6']) >= 70 ? 'dot-green' : 'dot-red';
+                $test1DotClass = htmlentities($rows[$i]['test_1']) != null ? 'dot-green-sml' : '';
+                $test2DotClass = htmlentities($rows[$i]['test_2']) != null ? 'dot-green-sml' : '';
+                $test3DotClass = htmlentities($rows[$i]['test_3']) != null ? 'dot-green-sml' : '';
+                $test5DotClass = htmlentities($rows[$i]['test_5']) != null ? 'dot-green-sml' : '';
+                $test6DotClass = htmlentities($rows[$i]['test_6']) != null ? 'dot-green-sml' : '';
                 $display .= "<div onclick='retrieveOldTest($(\".row-id\", this).text(), $(\".row-site\", this).text())'><span>". $status ."</span><span class='row-site'>". $site ."</span>";
                 $display .=  "<span>".$rows[$i]['test_1']."<span class='".$test1DotClass."'></span></span><span>".$rows[$i]['test_2']."<span class='".$test2DotClass."'></span></span>";
                 $display .=  "<span>".$rows[$i]['test_3']."<span class='".$test3DotClass."'></span></span>";
@@ -904,7 +822,159 @@ class Index
             echo json_encode($display);
 
          } else {
-            return (array('status' => 'error','message' => $link->error));
+            echo json_encode(array('status' => 'error','message' => $link->error));
+        }
+    }
+
+    public function markScoresCompleteInMaster($table, $masterId) {
+        include ("connection.php");
+        header('Content-Type: application/json');
+        // error_log("submitFinalResultsToMaster Inside");
+        if($table == "audit_forward") { // Forward Check
+            $sql = "SELECT
+                    100 / (SELECT COUNT(*) FROM audit_forward WHERE master_id = $masterId AND review_status = 'complete') GradePercentageOfEachFoundAssetOnTheFloor,
+                    sum(case when cep_score <= 6 then 1 else 0 end) TotalFailedCepScoresFromForwardCheck,
+                    sum(case when legacy_score <= 6 then 1 else 0 end) TotalFailedLegacyScoresFromForwardCheck,
+                    (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_forward WHERE master_id = $masterId AND review_status = 'complete') TotalAssetsNotFoundInCep,
+                    (SELECT sum(case when sshable_grade = 'fail' then 1 else 0 end) FROM audit_forward WHERE master_id = $masterId AND review_status = 'complete') TotalAssetsNotSShableInCep
+                    FROM audit_forward WHERE master_id = $masterId";
+        } else { // Reverse Check
+            $sql = "SELECT
+                    (SELECT COUNT(*) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete' AND asset_found_grade = 'pass') TotalFoundOfReverseCheckedAssets,
+                    (SELECT sum(case when score <= 6 then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalFailedOfReverseCheckedAssets,
+                    (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalNotFoundOfReverseCheckedAssets
+                    FROM audit_reverse
+                    group by TotalFoundOfReverseCheckedAssets";
+        }
+
+        if ($result = mysqli_query($link, $sql)) {
+
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+            // error_log("submitFinalResultsToMaster rows array: ". print_r($rows, true));
+            // error_log("getForwardCheckSystemsTotal total: ". $rows[0]['total']);
+
+            /* Calculate Final Test scores */
+            /*  */
+            if($table == "audit_forward") { // Forward Check
+                $test1Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalAssetsNotFoundInCep']));
+                $test2Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalFailedCepScoresFromForwardCheck']));
+                $test3Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalAssetsNotSShableInCep']));
+                // SSHABLE: $test3Score = 100 - ($rows[0][''] * $rows[0]['']);
+                $test5Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalFailedLegacyScoresFromForwardCheck']));
+
+                $sqlUpdate = "UPDATE audit_master                 
+                                SET test_1 = ?, test_2 = ?, test_3 = ?, test_5 = ?, is_forward_complete = 'yes'
+                                WHERE id = $masterId";
+
+                    if($stmt = mysqli_prepare($link, $sqlUpdate)){
+                        // Bind variables to the prepared statement as parameters
+                        mysqli_stmt_bind_param($stmt, "iiii", $test1Score, $test2Score, $test3Score, $test5Score);
+                        mysqli_stmt_execute($stmt);
+                        
+                    } else {
+                        echo json_encode(array('status' => 'error','message' => $link->error));
+                    }
+
+            } else { // Reverse Check
+
+                $test6Score = ROUND(100 - ($rows[0]['TotalFoundOfReverseCheckedAssets'] * $rows[0]['TotalFailedOfReverseCheckedAssets']));
+                $sqlUpdate = "UPDATE audit_master                 
+                                SET test_6 = ?, is_reverse_complete = 'yes'
+                                WHERE id = $masterId";
+
+                    if($stmt = mysqli_prepare($link, $sqlUpdate)){
+                        // Bind variables to the prepared statement as parameters
+                        mysqli_stmt_bind_param($stmt, "i", $test6Score);
+                        mysqli_stmt_execute($stmt); 
+                    
+                        // error_log("test1Score: ". $test1Score);
+                        // error_log("test2Score: ". $test2Score);
+                        // error_log("test4Score: ". $test4Score);
+                        // error_log("test5Score: ". $test5Score);
+                        // error_log("test6Score: ". $test6Score);
+                
+                        // echo json_encode($stmt);
+
+                    } else {
+                        echo json_encode(array('status' => 'error','message' => $link->error));
+                    }
+
+                // echo json_encode($rows);
+            }
+
+        } else {
+            echo (array('status' => 'error','message' => $link->error));
+        }
+    }
+
+    public function areAllAssetChecksComplete($table, $masterId) {
+        // error_log("Inside checkSerialInCep serial: ". $serial);
+        include ("connection.php");
+        header('Content-Type: application/json');
+        
+        $sql = "SELECT count(*) FROM $table WHERE master_id = $masterId AND COALESCE(review_status, '') = ''";
+
+         if ($result = mysqli_query($link, $sql)) {
+
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+            $count = $rows[0]['count(*)'];
+            
+            /* if count is 0, meaning all complete
+                Update completion test scores in master table saying that those tests are complete
+            */
+            if($count == 0) { // if no incomplete tests are found then all asset reviews are complete, so update master table test scores
+                $this->markScoresCompleteInMaster($table, $masterId);
+                echo json_encode(true);
+                exit;
+            }
+            echo json_encode(false);
+
+         } else {
+            echo json_encode(array('status' => 'error','message' => $link->error));
+        }
+    }
+
+    
+    public function isForwardAndReverseCheckComplete($masterId) {
+        // error_log("Inside checkSerialInCep serial: ". $serial);
+        include ("connection.php");
+        header('Content-Type: application/json');
+        
+        $sql = "SELECT is_forward_complete, is_reverse_complete FROM audit_master WHERE id = $masterId";
+
+         if ($result = mysqli_query($link, $sql)) {
+
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+
+            if($rows[0]['is_forward_complete'] == 'yes' && $rows[0]['is_reverse_complete'] == 'yes') {
+                echo json_encode(true);
+                exit;
+            }
+            echo json_encode(false);
+
+         } else {
+            echo json_encode(array('status' => 'error','message' => $link->error));
+        }
+    }
+
+    public function submitFinalResultsToMaster($masterId) {
+        // error_log("Inside submitFinalResultsToMaster");
+        include ("connection.php");
+        header('Content-Type: application/json');
+        
+        $sql = "UPDATE audit_master                 
+                        SET review_status = 'complete'
+                        WHERE id = ?";
+
+        if($stmt = mysqli_prepare($link, $sql)){
+            // Bind variables to the prepared statement as parameters
+            mysqli_stmt_bind_param($stmt, "i", $masterId);
+            mysqli_stmt_execute($stmt); 
+
+            echo json_encode($stmt);
+
+        } else {
+        echo json_encode(array('status' => 'error','message' => $link->error));
         }
     }
 
@@ -917,19 +987,34 @@ class Index
 	  
     switch($action) { //Switch case for value of action
         
-        case "addRandomAssets":
-        $activePmr = new Index();
-            $activePmr->addRandomAssetsToTable($_POST["masterId"], $_POST["site"]);
+        case "generateReverseCheckAssets":
+            $activePmr = new Index();
+                $activePmr->generateReverseCheckAssets($_POST["masterId"], $_POST["site"]);
             break;
 
-		case "updateAssetGrade":
-			$activePmr = new Index();
-				$activePmr->updateAssetGradeInDb($_POST["table"], $_POST["column"], $_POST["grade"], $_POST["masterId"], $_POST["serial"]);
+        case "areAllAssetChecksComplete":
+            $activePmr = new Index();
+                $activePmr->areAllAssetChecksComplete($_POST["table"], $_POST["masterId"]);
+            break;
+
+        case "areAllCepFieldsGraded":
+            $activePmr = new Index();
+                $activePmr->areAllCepFieldsGraded($_POST["serial"], $_POST["masterId"], $_POST["table"]);
             break;
             
         case "createAuditMasterRecord":
 			$activePmr = new Index();
 				$activePmr->createAuditMasterRecord($_POST["site"]);
+            break;
+
+        case "checkSerial":
+            $activePmr = new Index();
+                $activePmr->checkSerialInCep($_POST["serial"], $_POST["masterId"]);
+            break;
+
+        case "createSerialList":
+            $activePmr = new Index();
+                $activePmr->createSerialListFromDb($_POST["table"], $_POST["masterId"], $_POST["fromFrontend"]);
             break;
             
         case "getAssetGradeData":
@@ -942,50 +1027,46 @@ class Index
                 $activePmr->getAssetGradesFromDb($_POST["serial"], $_POST["table"], $_POST["masterId"]);
             break;
         
-        case "submitAsset":
-            $activePmr = new Index();
-                $activePmr->submitAssetToDb($_POST["serial"], $_POST["masterId"], $_POST["table"]);
-            break;
-
-        case "checkSerial":
-            $activePmr = new Index();
-                $activePmr->checkSerialInCep($_POST["serial"], $_POST["masterId"]);
-            break;
-
-        case "updateGradeInMaster":
-            $activePmr = new Index();
-                $activePmr->updateGradeInMaster($_POST["masterId"], $_POST["grade"], $_POST["column"]);
-            break;
-   
         case "getForwardCheckSystemsTotal":
             $activePmr = new Index();
                 $activePmr->getForwardCheckSystemsTotal($_POST["site"], $_POST["masterId"]);
-            break;
-    
-        case "submitFinalResults":
-            $activePmr = new Index();
-                $activePmr->submitFinalResultsToMaster($_POST["masterId"]);
-            break;
-            
-        case "incrementAssetCheckedTotalAndFoundStatus":
-            $activePmr = new Index();
-                $activePmr->incrementAssetCheckedTotalAndFoundStatus($_POST["table"], $_POST["masterId"]);
-            break;
-            
-        case "areAllCepFieldsGraded":
-            $activePmr = new Index();
-                $activePmr->areAllCepFieldsGraded($_POST["serial"], $_POST["masterId"], $_POST["table"]);
-            break;
-            
-        case "createSerialList":
-            $activePmr = new Index();
-                $activePmr->createSerialListFromDb($_POST["table"], $_POST["masterId"], $_POST["fromFrontend"]);
             break;
 
         case "getSiteResults":
             $activePmr = new Index();
                 $activePmr->getSiteResultsFromDb($_POST["site"]);
             break;
+
+        case "incrementAssetCheckedTotalAndFoundStatus":
+            $activePmr = new Index();
+                $activePmr->incrementAssetCheckedTotalAndFoundStatus($_POST["table"], $_POST["masterId"]);
+            break;
+            
+        case "isForwardAndReverseCheckComplete":
+            $activePmr = new Index();
+                $activePmr->isForwardAndReverseCheckComplete($_POST["masterId"]);
+            break;
+
+        case "submitAsset":
+            $activePmr = new Index();
+                $activePmr->submitAssetToDb($_POST["serial"], $_POST["masterId"], $_POST["table"]);
+            break;
+    
+        case "submitFinalResults":
+            $activePmr = new Index();
+                $activePmr->submitFinalResultsToMaster($_POST["masterId"]);
+            break;
+
+        case "updateAssetGrade":
+			$activePmr = new Index();
+				$activePmr->updateAssetGradeInDb($_POST["table"], $_POST["column"], $_POST["grade"], $_POST["masterId"], $_POST["serial"]);
+            break;
+
+        case "updateGradeInMaster":
+            $activePmr = new Index();
+                $activePmr->updateGradeInMaster($_POST["masterId"], $_POST["grade"], $_POST["column"]);
+            break;
+            
     }
   }
 

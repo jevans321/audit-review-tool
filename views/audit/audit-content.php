@@ -15,14 +15,15 @@
     </div>    
     
     <div id="top-container">
-    <span class="audit-title"></span>
+    <span class="audit-id"></span><span class="audit-title"></span>
         <div id="test-menu">
             <div><span class="actionButton" onclick="toggleContainers('#random-check-container')">Forward Check</span></div>
             <div><span class="actionButton" onclick="toggleContainers('#reverse-check-container')">Reverse Check</span></div>
-            <div><span onclick="openSubmitFinalModal(createdMasterId)">Submit Final Results</span></div>
+            <div><span class="submitFinalDisabled"><button class="submitFinalButton" onclick="openSubmitFinalModal(createdMasterId)" disabled>Submit Final Results</button></span></div>
         </div>
     </div>
     <div class="left-container">
+        <div class="left-loader"></div>
         <div id="random-check-container">
             <div><div class="serial-check-header sideHeaderTitle">System Check <span id="current-asset"></span> of <span id="total-assets"></span></div></div> 
             <div><form id="searchForm" onsubmit="openSerialSearchModal($('#search').val(), createdMasterId, 'audit_forward'); return false;" method="post">
@@ -33,7 +34,7 @@
         </div>
 
         <div id="reverse-check-container">
-            <div class="gen-serials-btn" onclick="addRandomAssets(createdMasterId, selectedSite)">Generate Serials</div>
+            <div class="gen-serials-btn" onclick="generateReverseCheckAssets(createdMasterId, selectedSite)">Generate Serials</div>
             <div class="reverse-serial-list">
             </div>
         </div>
@@ -43,16 +44,6 @@
             <div class="general-content-random-check">
             </div>
             <div class="location-content-random-check">
-            </div>
-            <div class="additional-tests-random-check">
-                <!-- <div id="test4-div">
-                    <h3>Test 4</h3>
-                    <div id="purpose-btn" onclick="openPurposeModal(createdMasterId, submittedSerial)">Purpose Check</div>
-                </div>
-                <div id="test5-div">
-                    <h3>Test 5</h3>
-                    <div id="legacy-btn" onclick="openLegacyModal(createdMasterId, submittedSerial)">Legacy Check</div>
-                </div> -->
             </div>
             <div class="asset-score-random-check">
             </div>
@@ -84,7 +75,7 @@
     var purpose1Grade, purpose2Grade, legacy1Grade, legacy2Grade;
 
     function getSiteResults(selectedSite){
-		console.log("getSiteResults selectedSite: ", selectedSite);
+		// console.log("getSiteResults selectedSite: ", selectedSite);
 		// if(!selectedSite) return;
 		var data = {
 			"action": "getSiteResults",
@@ -98,7 +89,12 @@
 			success: function(data) {
                 // var code = "<div class='site-results'></div>";
                 console.log("get site results: ", data);
-                $(".dash-content").html(data);
+                if(data === "no results") {
+                    $(".dash-content").html("<div>No tests available</div>");
+                } else {
+                    $(".dash-content").html(data);
+                }
+                
 			} //success
 		}); //end ajax
     }
@@ -114,6 +110,8 @@
         $("#dash-container").hide();
         // show top menu
         $("#top-container, #test-menu").show();
+        $(".audit-id").text("id: " + masterId);
+        isForwardAndReverseCheckComplete(masterId);
     }
 
     function toggleContainers(elementId) {
@@ -147,6 +145,7 @@
     }
 
     function getForwardCheckSystemsTotal(site) {
+        $(".left-loader").addClass("icon-loader-center");
         var data = {
 			"action": "getForwardCheckSystemsTotal",
             "site": site,
@@ -160,11 +159,16 @@
 			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
-                console.log("getForwardCheckSystemsTotal data: ", data);
+                $(".left-loader").removeClass("icon-loader-center");
+                // console.log("getForwardCheckSystemsTotal data: ", data);
                 $("#total-assets").text(data[0]); // display total asset count in UI
                 
                 if(data[1]) { // If an 'assets checked' count exists then display it in UI
                     $("#current-asset").text(data[1]);
+                    if($("#current-asset").text() === $("#total-assets").text()) {
+                        $("#searchForm, .system-found-div").hide();
+                    }
+
                     if(data[2]) { // If an html serial list exists then display it in UI
                         $(".forward-serial-list").html(data[2]);
                         // add highlight to left menu item
@@ -194,7 +198,7 @@
             $(".asset-score-reverse-check, .general-content-reverse-check, .location-content-reverse-check").empty();
         } else {
             // If Forward Check is being done, empty content area before each query to retrieve new content from DB
-            $(".asset-score-random-check, .general-content-random-check, .location-content-random-check, .additional-tests-random-check").empty();
+            $(".asset-score-random-check, .general-content-random-check, .location-content-random-check").empty();
         }
 
         $("#error-container").empty();
@@ -225,8 +229,9 @@
                        the below conditional would be accessed and the Forward Check asset total would be incremented. But the asset already exists
                        and has been counted so incrementing is not necessary, so I added the data[5] check. Which basically says, if the record exists don't go into this conditional
                        and increment the total count */
-                    if(table === "audit_forward" && !data[5]) { // if table equals 'audit_forward AND data[5] ("record exists") does not exist
+                    if(table === "audit_forward" && !data[5]) { // if table equals 'audit_forward AND data[5] ("record exists") Does Not exist
                         incrementAssetCheckedTotalAndFoundStatus('fail', table);
+
                     } else {
                         /* The below conditional will re-add the 'active' class to the serial numbers
                         div container (if it exists in the element). This is done becuase the active
@@ -244,7 +249,6 @@
                 } else if(data[2] === "audit_forward") { // if successful 'Forward Check' serial search..
                     $(".general-content-random-check").html(data[0]);
                     $(".location-content-random-check").html(data[1]);
-                    $(".additional-tests-random-check").html(data[3]);
                     $("#content-random-check").show();
                     /* Conditional for if the searched for serial already exists in table.
                         - retrieve the systems previous grades from db
@@ -268,18 +272,30 @@
                     
                 }
                       
-                /*  Conditional below retrieves past asset pass/fail grades only if serial link has been clicked already.
+                /*  Forward Check db returns that are not duplicates or empty should Not make it down to this block of code.
+                    They will 'return' in the 'else if' statement just above.
+
+                    Only Reverse Checks and All duplicates and empty returns will hit the conditional below.
+
+                    Conditional below retrieves past asset pass/fail grades only if serial link has been clicked already.
                     There is an object above function, serialObj, that stores the serial #'s of each serial clicked.
                     If the object has the serial already it means the serial link has been clicked, so a query is sent
                     to retrieve previous grades selected to show in the UI. If serial is not in object, it means serial
                     has not been clicked, so the serial is added, however, retrieval query is not invoked.
-                    - data[5] is for the case that a test record already exists for a serial searched for but the serial does not
-                    exist in CEP. So there is no need to query for any non existent grades.
+
+                    !data[5] means if a Forward Check was done, return TRUE if a record Does Not exist in 'audit_forward' table
+                    So let's say a Forward Check was done and a record Exists in the 'audit_forward' table. Again, only
+                    the duplicate and empty responses make it down to this conditional.. So in the 'exists' case, I don't want
+                    to go into the conditional and run the 'getAssetGrades' function to get the assets grades, because the
+                    grades don't exist in the records of serials that are duplicates or empty.
                 */
-                if((serialObj[serial] || isEdit) && !data[5]) {
+               console.log("right above seriablObj conditional");
+                if((serialObj[serial] || isEdit) && !data[5]) { 
+                    console.log("Inside seriablObj isEdit conditional");
                     // run getAssetGrades function
                     getAssetGrades(serial, table, masterId);
                 } else {
+                    console.log("Inside seriablObj conditional");
                     // add id to object
                     serialObj[serial] = 1;
                 }
@@ -370,14 +386,16 @@
                     $(".update-date").text(data[10]);
                     // Test 2 through 5 scores can be added here..
                 }
+                $(".ssh-loader").removeClass("icon-loader");
 
 			} //success
 		}); //end ajax
     }
 
     function updateAssetGrade(table, column, grade, masterId, serial){
+        // $('.icon-loader').removeClass('hide');
 		// console.log("updateAssetGrade id: ", id);
-        console.log("updateAssetGrade this value: ", grade);
+        // console.log("updateAssetGrade this value: ", grade);
         if(column === "asset_found_grade" && grade === "fail") {
             // run updateAssetGrade for all Reverse Check grade columns
             updateAssetGrade(table, "system_owner_grade", grade, masterId, serial);
@@ -413,7 +431,11 @@
 			url: "./routes/audit_class.php",
 			data: data,
 			success: function(data) {
-                console.log("updateAssetGrade data: ", data);
+                // console.log("updateAssetGrade data: ", data);
+                // $('.icon-loader').addClass('hide');
+                if(column === "sshable_grade") {
+                    getAssetGrades(serial, table, masterId);
+                }
                 // getAllRequests();	
                 
 			} //success
@@ -482,6 +504,7 @@
                 selectedSite = data[0];
                 createdMasterId = data[1];
                 $("#top-container, #test-menu").show();
+                $(".audit-id").text("id: " + data[1]);
                              
  				// $(".loader").hide();	
 			} //success
@@ -489,11 +512,12 @@
     }
 
     
-    function addRandomAssets(masterId, site){
+    function generateReverseCheckAssets(masterId, site){
         $('.gen-serials-btn').hide();
+        $(".left-loader").addClass("icon-loader-center");
 
         var data = {
-            "action": "addRandomAssets",
+            "action": "generateReverseCheckAssets",
             "masterId": masterId,
             "site": site
         };
@@ -502,8 +526,9 @@
             type: "POST",
             url: "./routes/audit_class.php",
             data: data,
-            success: function(data) {	
-                console.log("addRandomAssets data: ", data);
+            success: function(data) {
+                $(".left-loader").removeClass("icon-loader-center");
+                console.log("generateReverseCheckAssets data: ", data);
                 $(".reverse-serial-list").html(data);
                 // $(".loader").hide();	
 
@@ -542,22 +567,27 @@
                     alert("Please grade all data points");
                     return;
                 }
-                if(table === "audit_forward") {
-                    $(".general-content-random-check, .location-content-random-check, .additional-tests-random-check").empty();
+                if(table === "audit_forward") { // Forward Check
+                    $(".general-content-random-check, .location-content-random-check").empty();
                     /* First conditional: If the system count matches the total count of systems
                        needing to be checked, end Forward-Check */
                     if($("#current-asset").text() === $("#total-assets").text()) {
-                        alert("You have completed the Forward Check");
                         $("#searchForm, .system-found-div").hide();
+                        /* Run the below function to check if all asset reviews are complete for the Forward/Reverse Check.
+                           If so, the master table will be updated with the scores from the completed test. */
+                        areAllAssetChecksComplete(table, masterId);
                     } else {
                         // Reset the system-found select box to the unselected value at index 0
                         // $(".system-found-select-box").get(0).selectedIndex = 0;
                         alert("Asset Graded, Please search for next asset");
                     }
                     // $(".asset-score-random-check").html(data[1]);
-                } else {
+                } else { // Reverse Check
                     // display the Asset Score div with score retrieved from database.
                     $(".asset-score-reverse-check").html(data[1]);
+                   /* Run the below function to check if all asset reviews are complete for the Forward/Reverse Check.
+                      If so, the master table will be updated with the scores from the completed test. */
+                    areAllAssetChecksComplete(table, masterId);
                 }
 
                 /* Below conditional: re-add's the 'active' class to the serial numbers
@@ -579,6 +609,7 @@
                         $(".reverse-serial-list").html(data[0]);
                     }
                 }
+
              
 				// $(".loader").hide();	
 
@@ -601,7 +632,6 @@
 			data: data,
 			success: function(data) {	
                 console.log("areAllCepFieldsGraded data: ", data);
-                return data;
 				// $(".loader").hide();	
 
 			} //success
@@ -655,6 +685,7 @@
     }
 
     function submitFinalResults(masterId) {
+        removePopup();
         var data = {
             "action": "submitFinalResults",
             "masterId": masterId
@@ -666,7 +697,8 @@
 			data: data,
 			success: function(data) {	
                 console.log("submitFinalResults data: ", data);
-             
+                $("#top-container, #test-menu, #random-check-container, #reverse-check-container, #content-random-check, #error-container, .system-found-div").hide();
+                alert("Your audit test is complete");
 				// $(".loader").hide();	
 
 			} //success
@@ -674,6 +706,7 @@
     }
 
     function createSerialList(masterId, table) {
+        $(".left-loader").addClass("icon-loader-center");
         var data = {
             "action": "createSerialList",
             "masterId": masterId,
@@ -685,7 +718,8 @@
 			type: "POST",
 			url: "./routes/audit_class.php",
 			data: data,
-			success: function(data) {	
+			success: function(data) {
+                $(".left-loader").removeClass("icon-loader-center");
                 console.log("createSerialList data: ", data);
                 if(!data) { // if no records exists
                     // return out of function?
@@ -702,42 +736,93 @@
 		}); //end ajax
     }
 
-
-    var xhr;
-    function getApi(table){
-        // $("#loadingApi").show();
-
-        // var databaseIp = $("#ip-input").attr('placeholder');
-
-		xhr = $.ajax({
-            type: "GET",
-            // url: "http://l1001.fyre.ibm.com/reval/api-data.php?ip=9.30.4.76&shortinfo=true", // Linux
-            // url: "http://l1001.fyre.ibm.com/reval/api-data.php?ip=9.30.10.32&shortinfo=true", // Windows
-            url: "http://l1001.fyre.ibm.com/reval/api-data.php?ip="+databaseIp+"&shortinfo=true",
-            // build php url, then url calls mine php url then mine will call url
-            dataType: 'json',
-			// data: data,
-			success: function(res) {
-                console.log("Response: ", res);
-                // console.log("Url: ", "http://l1001.fyre.ibm.com/reval/api-data.php?ip="+databaseIp+"&shortinfo=true");
-                // $("#loadingApi").hide();		
-                // if response has error prop
-                if(res['error']) {
-                    if(res['error'].indexOf('Invalid URL') > -1 || res['error'].indexOf('Unable to ping') > -1) {
-
-                        // updateAssetGrade(table, column, grade, masterId, serial)
-                        updateAssetGrade(table, sshable_grade, 'fail', createdMasterId, submittedSerial);
-
+    function areAllAssetChecksComplete(table, masterId) {
+        var data = {
+            "action": "areAllAssetChecksComplete",
+            "table": table,
+            "masterId": masterId
+		};
+		data = $(this).serialize() + "&" + $.param(data);
+		$.ajax({
+			type: "POST",
+			url: "./routes/audit_class.php",
+			data: data,
+			success: function(data) {
+                // data is a boolean
+                console.log("areAllAssetChecksComplete data: ", data);
+                if(data) { // if true
+                    if(table === "audit_reverse") {
+                        alert("You have completed the Reverse Check");
+                    } else if(table === "audit_forward") {
+                        alert("You have completed the Forward Check");
                     }
-                    
-                }  else {
-                    // output code
-                    updateAssetGrade(table, sshable_grade, 'pass', createdMasterId, submittedSerial);
+                    /* The function below will un-gray the submit Final button if all checks complete */
+                    isForwardAndReverseCheckComplete(masterId);
                 }
-                $("#ajaxData").html(code);
+				// $(".loader").hide();	
 
 			} //success
 		}); //end ajax
+    }
+
+    function isForwardAndReverseCheckComplete(masterId) {
+        console.log("inside isForwardAndReverseCheckComplete");
+        var data = {
+            "action": "isForwardAndReverseCheckComplete",
+            "masterId": masterId
+		};
+		data = $(this).serialize() + "&" + $.param(data);
+		$.ajax({
+			type: "POST",
+			url: "./routes/audit_class.php",
+			data: data,
+			success: function(data) {
+                // data is a boolean
+                console.log("isForwardAndReverseCheckComplete data: ", data);
+                if(data === true) { // if true
+                    // un-gray submit final button
+                    $("#test-menu > div:last-child span").removeClass("submitFinalDisabled").addClass("actionButton");
+                    $(".submitFinalButton").css("cursor", "pointer");
+                    $(".submitFinalButton").removeAttr("disabled");
+                }
+
+				// $(".loader").hide();	
+
+			} //success
+		}); //end ajax
+    }
+
+    function runSsh(databaseIp, serial, masterId, table) {
+        // $("#requirementsNoticeDiv").css("display", "block");
+        $(".ssh-loader").addClass("icon-loader");
+        // $("#sshResults").html("Checking SSH Status....");
+        console.log("V1 Running ssh for " + databaseIp);
+      
+        $.ajax({
+            type: "GET",
+            url: "api-data.php?"+databaseIp,
+            dataType: 'json',
+            success: function(res) {
+                console.log("Cep Response & connected: ", res, res.connected);
+                if(res.connected === "true") {
+                    updateAssetGrade(table, "sshable_grade", "pass", masterId, serial);
+                } else {
+                    updateAssetGrade(table, "sshable_grade", "fail", masterId, serial);
+                }
+                // var resLabel = '<label>' + res + "</label>";
+                // $("#sshResults").html("Connected: ", res.connected);
+                // $("#loadingApi").hide();		
+            },
+            error: function(res) {
+                console.log("Ajax Error: ", res);
+                updateAssetGrade(table, "sshable_grade", "fail", masterId, serial);
+                // alert("There was an error is your request. Please try again.");
+                // $("#sshResults").html(res.responseText);
+            }
+        }); //end ajax
+        // $("#requirementsNoticeDiv").css("display", "none");
+
+
     }
 
     function openSubmitFinalModal(masterId) {
@@ -878,7 +963,6 @@
     $(function(){
 
         $("#top-container, #test-menu, #random-check-container, #reverse-check-container, #content-random-check, #error-container, .system-found-div").hide();
-
 
         $('body').on('click', '.actionButton, .serial-container', function() {
 

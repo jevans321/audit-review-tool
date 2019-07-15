@@ -1,12 +1,13 @@
 <div class="maincontainerfull">	
     <div id="message" class="hideMessage"></div>
     <div class="ipScan">
-        <div>Search for missing IP's in CEP by IP range:</div>
+        <div class="pageTitle">Search for missing IP's in CEP by IP range</div>
         <div>
-            <input id="startIp" type="text" placeholder="starting IP"> <input id="endIp" type="text" placeholder="ending IP"><span><button onclick="getIpsNotInCep($('#startIp').val(), $('#endIp').val())" class="reportButton">Search</button></span>
+            <input id="startIp" type="text" placeholder="starting IP"> <input id="endIp" type="text" placeholder="ending IP"><span><button onclick="getIpsNotInCep($('#startIp').val(), $('#endIp').val())" class="reportButton ipScanButton">Search</button></span>
         </div>
     </div>
 	<div class="actions">
+		<div class="pageTitle">Select a Site &amp; Report Type</div>
         <span>
 		  <select id="siteLocation" class="custom-select form-control">
 
@@ -28,7 +29,6 @@
 	</div>
 	<div class="icon-loader hide"></div>
 	<div id="page-content">
-		<div class="pageTitle">Select a Site &amp; Report Type</div>
 	</div>
 </div>
   <script>
@@ -248,7 +248,8 @@
 				url: "./routes/reporting_class.php", //Relative or absolute path to response.php file
 				data: data,
 				success: function(data) {
-					console.log("getIpsNotInCep data: ", data);		
+					console.log("getIpsNotInCep data: ", data);
+					$("#page-content").html(data);
 				}  
 			});
 	}
