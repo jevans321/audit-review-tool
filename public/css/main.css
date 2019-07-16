@@ -129,13 +129,13 @@ h2 span, h3 span, h4 span {
     margin-top: 15px;
 }
 
-#content-random-check,
+#content-forward-check,
 #content-reverse-check {
     margin-left: 60px;
     margin-top: 10px;
 }
 
-#content-random-check select,
+#content-forward-check select,
 #content-reverse-check select {
     font-family: sans-serif;
     height: 30px;
@@ -143,9 +143,9 @@ h2 span, h3 span, h4 span {
 }
 
 .location-content-reverse-check,
-.location-content-random-check,
+.location-content-forward-check,
 .asset-score-reverse-check,
-.asset-score-random-check {
+.asset-score-forward-check {
     margin-left: 50px;
 }
 
@@ -154,26 +154,26 @@ h2 span, h3 span, h4 span {
     margin-top: 48px;
 }
 
-.location-content-random-check {
+.location-content-forward-check {
     display: inline-block;
     margin-top: 57px;
 }
 
 .left-container,
-#content-random-check,
+#content-forward-check,
 #content-reverse-check,
-.general-content-random-check,
+.general-content-forward-check,
 .general-content-reverse-check,
-.location-content-random-check,
+.location-content-forward-check,
 .location-content-reverse-check,
 .asset-score-reverse-check,
-.asset-score-random-check {
+.asset-score-forward-check {
     display: inline-block;
     vertical-align: top;
 }
 
 .asset-score-reverse-check,
-.asset-score-random-check {
+.asset-score-forward-check {
     text-align: center;
     margin-top: 46px;
 }
@@ -189,13 +189,13 @@ h2 span, h3 span, h4 span {
     width: 400px;
 }
 
-.location-content-random-check > div,
+.location-content-forward-check > div,
 .location-content-reverse-check > div {
     height: 36px;
 }
 
 .general-content-reverse-check > div,
-.general-content-random-check > div {
+.general-content-forward-check > div {
   display: flex;
 /*   justify-content: center; */
   align-items: center;
@@ -204,26 +204,26 @@ h2 span, h3 span, h4 span {
  }
 
 .general-content-reverse-check > div:first-child,
-.general-content-random-check > div:first-child {
+.general-content-forward-check > div:first-child {
    border-bottom: 1px solid #484b86;
  }
 
-.general-content-random-check div > div,
-.location-content-random-check div > div,
+.general-content-forward-check div > div,
+.location-content-forward-check div > div,
 .general-content-reverse-check div > div,
 .location-content-reverse-check div > div {
     display: inline-block;
 }
 
-.general-content-random-check div div:nth-child(1),
-.location-content-random-check div div:nth-child(1),
+.general-content-forward-check div div:nth-child(1),
+.location-content-forward-check div div:nth-child(1),
 .general-content-reverse-check div div:nth-child(1),
 .location-content-reverse-check div div:nth-child(1) {
     width: 400px;
 }
 
 .general-content-reverse-check > div > div > span,
-.general-content-random-check > div > div > span {
+.general-content-forward-check > div > div > span {
   float: right;
   padding-right: 13px;
 }
@@ -243,7 +243,7 @@ h2 span, h3 span, h4 span {
     background: #bec1f9;
 }
 
-.submit-asset-random-check,
+.submit-asset-forward-check,
 .submit-asset-reverse-check {
     display: flex;
     justify-content: flex-end;

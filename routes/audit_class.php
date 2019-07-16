@@ -3,14 +3,14 @@
 
 class Index
 {
-	public function updateAssetGradeInDb($table, $column, $grade, $masterId, $serial) {
+	public function updateAssetValueInDb($table, $column, $value, $masterId, $serial) {
 		include ("connection.php");
 		header('Content-Type: application/json');
 		// $name = $_SESSION['firstName']. " " .$_SESSION['lastName'];
 
         /* The first conditional statement below sets the forward-checked systems review status
            to complete when a serial number is not found in CEP */
-        if($table == "audit_forward" && $column == "asset_found_grade" && $grade === "fail") {
+        if($table == "audit_forward" && $column == "asset_found_grade" && $value === "fail") {
             $sql = "UPDATE $table
                     SET $column = ?, review_status = 'complete'
                     WHERE master_id = ? && system_serial = ?";
@@ -21,19 +21,19 @@ class Index
         }
 		
 		if($stmt = mysqli_prepare($link, $sql)){
-			mysqli_stmt_bind_param($stmt, "sis", $grade, $masterId, $serial);
+			mysqli_stmt_bind_param($stmt, "sis", $value, $masterId, $serial);
             mysqli_stmt_execute($stmt);
-            /* This current function updateAssetGradeInDb is also being used in the function getAssetGradeDataFromCep to
+            /* This current function updateAssetValueInDb is also being used in the function getAssetGradeDataFromCep to
                 update a 'review_status' column. This is done on the back-end and I don't want to echo. In the cases I'm calling
                 this function from the front-end I want to echo back. This conditional allows me to do this. */
-            if($column != "review_status") { 
+            if($column != "review_status" && $column != "score") { 
                 echo json_encode($stmt);
             }
 
 		} else {
 			echo json_encode(array('status' => 'error','message' => $link->error));
 		}
-    } // end updateAssetGradeInDb
+    } // end updateAssetValueInDb
 
     public function createAuditMasterRecord($site) {
         // error_log("Inside back-end createAuditMasterRecord");
@@ -232,9 +232,9 @@ class Index
                     1 => "duplicates"
                 );
                 if($table == "audit_reverse") {
-                    /* Updated the review_status in the audit_reverse table to 'complete'. I'm using the updateAssetGradeInDb function
-                       because it does exactly what I need without needing to create another function.  */
-                    $this->updateAssetGradeInDb($table, "review_status", "complete", $masterId, $serial);
+                    /* Updated the review_status in the audit_reverse table to 'complete'. */
+                    $this->updateAssetValueInDb($table, "review_status", "complete", $masterId, $serial);
+                    $this->updateAssetValueInDb($table, "score", 0, $masterId, $serial);
                     $serialList = $this->createSerialListFromDb("audit_reverse", $masterId, false);
                     $array[2] = $serialList; //substr($serialList, 0, -3);
                 }
@@ -274,7 +274,7 @@ class Index
                 $display .= "<div>
                                 <div>Asset Found:&nbsp;</div>
                                 <div>
-                                    <select class='asset-select-box'  onchange='updateAssetGrade(\"$table\", \"asset_found_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                    <select class='asset-select-box'  onchange='updateAssetValue(\"$table\", \"asset_found_grade\", $(this).val(), $masterId, \"$serial\")'>
                                     <option  value='' disabled='' selected=''>Select Grade</option>
                                     <option value='pass'>Yes</option>
                                     <option value='fail'>No</option>
@@ -285,7 +285,7 @@ class Index
             $display .= "<div>
                             <div class='ssh-row'>SSHable:</div><div class='ssh-loader'></div>
                             <div>
-                                <select class='ssh-select-box'  onchange='updateAssetGrade(\"$table\", \"sshable_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='ssh-select-box'  onchange='updateAssetValue(\"$table\", \"sshable_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Yes</option>
                                 <option value='fail'>No</option>
@@ -296,7 +296,7 @@ class Index
             $display .=  "<div>
                             <div>System Owner:&nbsp;<span id='sys-owner-row' class='span-static-val'>". $sytemOwnerValue ."</span></div>
                             <div>
-                                <select class='sys-owner-select-box'  onchange='updateAssetGrade(\"$table\", \"system_owner_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='sys-owner-select-box'  onchange='updateAssetValue(\"$table\", \"system_owner_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Pass</option>
                                 <option value='fail'>Fail</option>
@@ -308,7 +308,7 @@ class Index
             $display .=  "<div>
                             <div>Manufacturer:&nbsp;<span id='system-row' class='span-static-val'>". $manufacturerValue ."</span></div>
                             <div>
-                                <select class='system-select-box'  onchange='updateAssetGrade(\"$table\", \"system_type_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='system-select-box'  onchange='updateAssetValue(\"$table\", \"system_type_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Pass</option>
                                 <option value='fail'>Fail</option>
@@ -320,7 +320,7 @@ class Index
             $display .=  "<div>
                             <div>Hostname:&nbsp;<span id='hostname-row' class='span-static-val'>".$hostnameValue."</span></div>
                             <div>
-                                <select class='host-select-box'  onchange='updateAssetGrade(\"$table\", \"hostname_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='host-select-box'  onchange='updateAssetValue(\"$table\", \"hostname_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Pass</option>
                                 <option value='fail'>Fail</option>
@@ -332,7 +332,7 @@ class Index
             $display .=  "<div>
                             <div>IP:&nbsp;<span id='ip-row' class='span-static-val'>".$ipValue."</span></div>
                             <div>
-                                <select class='ip-select-box'  onchange='updateAssetGrade(\"$table\", \"ip_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='ip-select-box'  onchange='updateAssetValue(\"$table\", \"ip_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Pass</option>
                                 <option value='fail'>Fail</option>
@@ -344,7 +344,7 @@ class Index
             $display .= "<div>
                             <div>Room Location:&nbsp;<span id='room-row' class='span-static-val'>". $roomValue ."</span></div>
                             <div>
-                                <select class='room-select-box'  onchange='updateAssetGrade(\"$table\", \"room_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='room-select-box'  onchange='updateAssetValue(\"$table\", \"room_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Pass</option>
                                 <option value='fail'>Fail</option>
@@ -356,7 +356,7 @@ class Index
             $display .= "<div>
                             <div>Grid Location:&nbsp;<span id='grid-row' class='span-static-val'>". $gridValue ."</span></div>
                             <div>
-                                <select class='grid-select-box'  onchange='updateAssetGrade(\"$table\", \"grid_grade\", $(this).val(), $masterId, \"$serial\")'>
+                                <select class='grid-select-box'  onchange='updateAssetValue(\"$table\", \"grid_grade\", $(this).val(), $masterId, \"$serial\")'>
                                 <option  value='' disabled='' selected=''>Select Grade</option>
                                 <option value='pass'>Pass</option>
                                 <option value='fail'>Fail</option>
@@ -618,7 +618,7 @@ class Index
 		} else {
 			echo json_encode(array('status' => 'error','message' => $link->error));
 		}
-    } // end updateAssetGradeInDb
+    } // end updateAssetValueInDb
 
     /* This function retrieves the count for half of the hardware systems of a given site */
     public function getForwardCheckSystemsTotal($site, $masterId) {
@@ -738,7 +738,7 @@ class Index
 		} else {
 			echo json_encode(array('status' => 'error','message' => $link->error));
 		}
-    } // end updateAssetGradeInDb
+    } // end updateAssetValueInDb
 
     /* Below Function checks if all data fields for a reviewed system have been graded. Returns a boolean. */
     public function areAllCepFieldsGraded($serial, $masterId, $table) {
@@ -840,6 +840,7 @@ class Index
                     FROM audit_forward WHERE master_id = $masterId";
         } else { // Reverse Check
             $sql = "SELECT
+                    100 / (SELECT COUNT(*) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') GradePercentageOfEachAsset,
                     (SELECT COUNT(*) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete' AND asset_found_grade = 'pass') TotalFoundOfReverseCheckedAssets,
                     (SELECT sum(case when score <= 6 then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalFailedOfReverseCheckedAssets,
                     (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalNotFoundOfReverseCheckedAssets
@@ -877,7 +878,7 @@ class Index
 
             } else { // Reverse Check
 
-                $test6Score = ROUND(100 - ($rows[0]['TotalFoundOfReverseCheckedAssets'] * $rows[0]['TotalFailedOfReverseCheckedAssets']));
+                $test6Score = ROUND(100 - ($rows[0]['GradePercentageOfEachAsset'] * $rows[0]['TotalFailedOfReverseCheckedAssets']));
                 $sqlUpdate = "UPDATE audit_master                 
                                 SET test_6 = ?, is_reverse_complete = 'yes'
                                 WHERE id = $masterId";
@@ -1057,9 +1058,9 @@ class Index
                 $activePmr->submitFinalResultsToMaster($_POST["masterId"]);
             break;
 
-        case "updateAssetGrade":
+        case "updateAssetValue":
 			$activePmr = new Index();
-				$activePmr->updateAssetGradeInDb($_POST["table"], $_POST["column"], $_POST["grade"], $_POST["masterId"], $_POST["serial"]);
+				$activePmr->updateAssetValueInDb($_POST["table"], $_POST["column"], $_POST["value"], $_POST["masterId"], $_POST["serial"]);
             break;
 
         case "updateGradeInMaster":
