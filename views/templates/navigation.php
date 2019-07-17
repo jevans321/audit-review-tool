@@ -1,5 +1,5 @@
 <!-- Header Navigation Section -->
-<nav class="navbar navbar-expand-md navbar-dark fixed-top">
+<nav class="navbar navbar-expand-md navbar-dark">
 		<span class="icon-main"></span>
         <span class="navbar-brand">DevIT Audit</span>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">

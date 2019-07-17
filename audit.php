@@ -22,8 +22,9 @@
 
 	 <!-- scripts Section -->
 
-    <!-- <script src="./public/lib/popper.min.js"></script>
-    <script src="./public/lib/bootstrap/js/bootstrap.min.js"></script> -->
+    <script src="./public/lib/popper.min.js"></script>
+	<script src="./public/lib/bootstrap/js/bootstrap.min.js"></script>
+	<script src="./public/lib/bootstrap/js/bootstrap-alert.js"></script>
  
     <script>
 	

@@ -165,7 +165,7 @@ class Index
     /* This function handles CEP data retrieval queries for the provided serial numbers for
        both forward and reverse checks. The conditionals in the function including audit_forward
        are for the foward check table and audit_reverse are for the reverse check table. */
-    public function getAssetGradeDataFromCep($serial, $masterId, $table) {
+    public function getAssetGradeDataFromCep($serial, $masterId, $table, $site) {
         // error_log("getAssetGradeDataFromCep TABLE: ". $table);
         include ("connection.php");
         header('Content-Type: application/json');
@@ -208,7 +208,7 @@ class Index
                         ON hw.system_type = md.system_type
                         LEFT JOIN lab_locations loc
                         ON hw.grid_id = loc.id
-                        WHERE hw.system_serial = '$serial'";
+                        WHERE hw.system_serial = '$serial' AND hw.hw_site = '$site'";
 
 
          if ($result = mysqli_query($link, $sql)) {
@@ -400,7 +400,7 @@ class Index
             /* The values in the below array will populate the front-end select box values.
                 If the value is null the select box value will be empty, otherwise it will send a value */
             if($table == "audit_reverse") {
-                $display = "<h2>Asset Score</h2>";
+                $display = "<div><h2>Asset Score</h2></div>";
                 $display .= "<div>". $rows[0]['score'] ."</div>";
                 $array = array(
                     0 => ($rows[0]['asset_found_grade'] == null ? "" : $rows[0]['asset_found_grade']),
@@ -791,7 +791,7 @@ class Index
                 echo json_encode("no results");
                 exit;
             }
-            $display = "<div><span>Status</span><span>Site</span><span title='Forward Check: Confirm system exists in CEP'>Test 1</span><span title='Forward Check: Confirm data integrity in CEP'>Test 2</span><span title='Forward Check: SSH Connection'>Test 3</span><span title='Forward Check: Legacy Deep Dive'>Test 5</span><span title='Reverse Check: Confirm data integrity on the floor'>Test 6</span><span>Date</span></div>";
+            $display = "<div><span>Status</span><span>Site</span><span title='Forward Check: Confirm system exists in CEP'>Test 1</span><span title='Forward Check: Confirm data integrity in CEP'>Test 2</span><span title='Forward Check: SSH Connection'>Test 3</span><span title='Forward Check: Legacy Deep Dive'>Test 4</span><span title='Reverse Check: Confirm data integrity on the floor'>Test 5</span><span>Date</span></div>";
             for ($i = 0; $i < count($rows); ++$i) {
                 $date = date('m-d-Y', strtotime($rows[$i]['updated']));
                 // capitalize site name
@@ -805,17 +805,17 @@ class Index
                 // $test1DotClass = htmlentities($rows[$i]['test_1']) >= 70 ? 'dot-green' : 'dot-red';
                 // $test2DotClass = htmlentities($rows[$i]['test_2']) >= 70 ? 'dot-green' : 'dot-red';
                 // $test3DotClass = htmlentities($rows[$i]['test_3']) >= 70 ? 'dot-green' : 'dot-red';
-                // $test5DotClass = htmlentities($rows[$i]['test_5']) >= 70 ? 'dot-green' : 'dot-red';
-                // $test6DotClass = htmlentities($rows[$i]['test_6']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test5DotClass = htmlentities($rows[$i]['test_4']) >= 70 ? 'dot-green' : 'dot-red';
+                // $test6DotClass = htmlentities($rows[$i]['test_5']) >= 70 ? 'dot-green' : 'dot-red';
                 $test1DotClass = htmlentities($rows[$i]['test_1']) != null ? 'dot-green-sml' : '';
                 $test2DotClass = htmlentities($rows[$i]['test_2']) != null ? 'dot-green-sml' : '';
                 $test3DotClass = htmlentities($rows[$i]['test_3']) != null ? 'dot-green-sml' : '';
+                $test4DotClass = htmlentities($rows[$i]['test_4']) != null ? 'dot-green-sml' : '';
                 $test5DotClass = htmlentities($rows[$i]['test_5']) != null ? 'dot-green-sml' : '';
-                $test6DotClass = htmlentities($rows[$i]['test_6']) != null ? 'dot-green-sml' : '';
                 $display .= "<div onclick='retrieveOldTest($(\".row-id\", this).text(), $(\".row-site\", this).text())'><span>". $status ."</span><span class='row-site'>". $site ."</span>";
                 $display .=  "<span>".$rows[$i]['test_1']."<span class='".$test1DotClass."'></span></span><span>".$rows[$i]['test_2']."<span class='".$test2DotClass."'></span></span>";
                 $display .=  "<span>".$rows[$i]['test_3']."<span class='".$test3DotClass."'></span></span>";
-                $display .=  "<span>".$rows[$i]['test_5']."<span class='".$test5DotClass."'></span></span><span>".$rows[$i]['test_6']."<span class='".$test6DotClass."'></span></span>";
+                $display .=  "<span>".$rows[$i]['test_4']."<span class='".$test4DotClass."'></span></span><span>".$rows[$i]['test_5']."<span class='".$test5DotClass."'></span></span>";
                 $display .= "<span>". $date ."</span><span>id: <span class='row-id'>". $rows[$i]['id'] ."</span></span></div>";
             }
             // error_log("DISPLAY: ". $display);
@@ -861,15 +861,15 @@ class Index
                 $test2Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalFailedCepScoresFromForwardCheck']));
                 $test3Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalAssetsNotSShableInCep']));
                 // SSHABLE: $test3Score = 100 - ($rows[0][''] * $rows[0]['']);
-                $test5Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalFailedLegacyScoresFromForwardCheck']));
+                $test4Score = ROUND(100 - ($rows[0]['GradePercentageOfEachFoundAssetOnTheFloor'] * $rows[0]['TotalFailedLegacyScoresFromForwardCheck']));
 
                 $sqlUpdate = "UPDATE audit_master                 
-                                SET test_1 = ?, test_2 = ?, test_3 = ?, test_5 = ?, is_forward_complete = 'yes'
+                                SET test_1 = ?, test_2 = ?, test_3 = ?, test_4 = ?, is_forward_complete = 'yes'
                                 WHERE id = $masterId";
 
                     if($stmt = mysqli_prepare($link, $sqlUpdate)){
                         // Bind variables to the prepared statement as parameters
-                        mysqli_stmt_bind_param($stmt, "iiii", $test1Score, $test2Score, $test3Score, $test5Score);
+                        mysqli_stmt_bind_param($stmt, "iiii", $test1Score, $test2Score, $test3Score, $test4Score);
                         mysqli_stmt_execute($stmt);
                         
                     } else {
@@ -878,14 +878,14 @@ class Index
 
             } else { // Reverse Check
 
-                $test6Score = ROUND(100 - ($rows[0]['GradePercentageOfEachAsset'] * $rows[0]['TotalFailedOfReverseCheckedAssets']));
+                $test5Score = ROUND(100 - ($rows[0]['GradePercentageOfEachAsset'] * $rows[0]['TotalFailedOfReverseCheckedAssets']));
                 $sqlUpdate = "UPDATE audit_master                 
-                                SET test_6 = ?, is_reverse_complete = 'yes'
+                                SET test_5 = ?, is_reverse_complete = 'yes'
                                 WHERE id = $masterId";
 
                     if($stmt = mysqli_prepare($link, $sqlUpdate)){
                         // Bind variables to the prepared statement as parameters
-                        mysqli_stmt_bind_param($stmt, "i", $test6Score);
+                        mysqli_stmt_bind_param($stmt, "i", $test5Score);
                         mysqli_stmt_execute($stmt); 
                     
                         // error_log("test1Score: ". $test1Score);
@@ -1020,7 +1020,7 @@ class Index
             
         case "getAssetGradeData":
             $activePmr = new Index();
-                $activePmr->getAssetGradeDataFromCep($_POST["serial"], $_POST["masterId"], $_POST["table"]);
+                $activePmr->getAssetGradeDataFromCep($_POST["serial"], $_POST["masterId"], $_POST["table"], $_POST["site"]);
             break;
 
         case "getAssetGrades":

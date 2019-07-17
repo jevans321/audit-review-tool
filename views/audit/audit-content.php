@@ -209,7 +209,8 @@
 			"action": "getAssetGradeData",
             "serial": serial,
             "masterId": masterId,
-            "table": table
+            "table": table,
+            "site": selectedSite
 		};
 		data = $(this).serialize() + "&" + $.param(data);
 		$.ajax({
@@ -259,7 +260,7 @@
                         
                         getAssetGrades(serial, table, masterId);
                         if(!noAlert) {
-                            alert("This system has already been searched and counted");
+                            bootstrapAlert('info', 'This system has already been searched and counted');
                         }
                         return;
                     }
@@ -336,7 +337,7 @@
                     /* Below conditional: if data[2] exists it means all required assets for
                        Forward Check have been searched for */
                     if(data[2]) {
-                        alert("This is the last of the Forward Check systems required.");
+                        bootstrapAlert('info', 'This is the last of the Forward Check systems required.');
                         // hide search box
                         // replace search box with "Forward Check Complete"
                         // "Total number of systems checked"
@@ -478,10 +479,10 @@
     
     function createAuditMasterRecord(site){
         if(site === 'cdl') {
-            alert("CDL site has no Grid Locations");
+            bootstrapAlert('warning', 'CDL site has no Grid Locations');
             return;
         } else if(!site) {
-            alert("Please select site location");
+            bootstrapAlert('info', 'Please select site location');
             return;
         }
         $("#dash-container").hide();
@@ -541,14 +542,14 @@
             var isTrue = true;
             $( ".general-content-reverse-check select" ).each(function() {
                 if(!$( this ).val()) {
-                    alert("Please grade all data points");
+                    bootstrapAlert('info', 'Please grade all data points');
                     isTrue = false;
                     return false;
                 }
             })
             if(!isTrue) return;
         }
-            //alert("You must grade all data points including the 'Legacy Check' at the bottom");
+
 		var data = {
 			"action": "submitAsset",
             "serial": serial,
@@ -563,7 +564,7 @@
 			success: function(data) {	
                 console.log("submitAsset data: ", data);
                 if(!data) {
-                    alert("Please grade all data points");
+                    bootstrapAlert('info', 'Please grade all data points');
                     return;
                 }
                 if(table === "audit_forward") { // Forward Check
@@ -578,7 +579,7 @@
                     } else {
                         // Reset the system-found select box to the unselected value at index 0
                         // $(".system-found-select-box").get(0).selectedIndex = 0;
-                        alert("Asset Graded, Please search for next asset");
+                        bootstrapAlert('info', 'Asset Graded, Please search for next asset');
                     }
                     // $(".asset-score-forward-check").html(data[1]);
                 } else { // Reverse Check
@@ -664,7 +665,7 @@
                     // update system-found-select-box selected value to 'No'
                     $(".system-found-select-box").val('fail');
 
-                    alert("serial could not be found");
+                    bootstrapAlert('warning', 'serial could not be found');
                     return;
                 }
                 // update test_1 column in db to pass
@@ -697,7 +698,7 @@
 			success: function(data) {	
                 console.log("submitFinalResults data: ", data);
                 $("#top-container, #test-menu, #forward-check-container, #reverse-check-container, #content-forward-check, #error-container, .system-found-div").hide();
-                alert("Your audit test is complete");
+                bootstrapAlert('info', 'Audit test is complete');
 				// $(".loader").hide();	
 
 			} //success
@@ -751,9 +752,9 @@
                 console.log("areAllAssetChecksComplete data: ", data);
                 if(data) { // if true
                     if(table === "audit_reverse") {
-                        alert("You have completed the Reverse Check");
+                        bootstrapAlert('info', 'You have completed the Reverse Check');
                     } else if(table === "audit_forward") {
-                        alert("You have completed the Forward Check");
+                        bootstrapAlert('info', 'You have completed the Forward Check');
                     }
                     /* The function below will un-gray the submit Final button if all checks complete */
                     isForwardAndReverseCheckComplete(masterId);
@@ -828,8 +829,8 @@
         var itemContent = "<div class='popup poplock confirmEnvAdd'>"+
 				"<span class='closeButton' onclick='removePopup()'>x</span>"+
                 "<div class='popupIcon'></div>"+
-                "<h4>Please confirm you wish complete and finalize this test.</h4>" +
-                "<div><button class='' onclick='submitFinalResults("+masterId+")'>Confirm</button></div>"+
+                "<h5>Please confirm you wish complete and finalize this test.</h5>" +
+                "<div><button class='modalConfirmButton' onclick='submitFinalResults("+masterId+")'>Confirm</button></div>"+
                 "</div>";
 
         var $newdiv1 = $(itemContent);
@@ -842,20 +843,20 @@
         /* Below conditional checks if the user is currently on their last system to be checked.
             It won't allow them to search for anymore systems if they are on the last one. */
         if($("#current-asset").text() === $("#total-assets").text()) {
-            alert("You have reached your search limit. Please complete the systems you have searched for.");
+            bootstrapAlert('info', 'You have reached your search limit. Please complete the systems you have searched for.');
             return;
         } 
         var regex = new RegExp(/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?\s]/g);
         if(serial === "" || regex.test(serial)) {
-            alert("Please only use standard alphanumerics with no spaces");
+            bootstrapAlert('info', 'Please only use standard alphanumerics with no spaces');
             return;
         }
-        var itemContent = "<div class='popup poplock confirmEnvAdd'>"+
+        var itemContent = "<div class='popup poplock serialConfirm confirmEnvAdd'>"+
 				"<span class='closeButton' onclick='removePopup()'>x</span>"+
                 "<div class='popupIcon'></div>"+
-                "<h4>Please confirm this is the serial you wish to search</h4>" +
-                "<h3>Serial: "+serial+"</h3>" +
-                "<div><button class='' onclick='getAssetGradeData(\""+serial+"\", "+masterId+", \""+table+"\")'>Confirm</button></div>"+
+                "<h5>Please confirm this is the serial you wish to search</h5>" +
+                "<h5>Serial: "+serial+"</h5>" +
+                "<div><button class='modalConfirmButton' onclick='getAssetGradeData(\""+serial+"\", "+masterId+", \""+table+"\")'>Confirm</button></div>"+
                 "</div>";
 
         var $newdiv1 = $(itemContent);
@@ -905,9 +906,10 @@
 				"<span class='closeButton' onclick='removePopup()'>x</span>"+
                 "<div class='popupIcon'></div>"+
                 "<h3>Legacy Deep Dive:</h3>" +
-                "<p>If system is considered legacy, local team to provide plan (including prerequisites) to scrap/consolidate the system or business justification to retain</p>" +
+                "<div>If a system is considered legacy, local team to provide plan (including prerequisites)</div>" +
+                "<div>to scrap/consolidate the system or business justification to retain</div>" +
                 "<div class='data-point-select'>" +
-                    "<h4>Is Plan with prerequisites available?&nbsp;</h4>" +
+                    "<h5>Is a plan with prerequisites available?&nbsp;</h5>" +
                     "<div>" +
                         "<select class='legacy1-select-box'  onchange='updateAssetValue(\"audit_forward\", \"legacy1_grade\", $(this).val(), "+masterId+", \""+serial+"\")'>"+
                         "<option  value='' disabled='' selected=''>Select Grade</option>" +
@@ -917,7 +919,7 @@
                     "</div>" +
                 "</div>" +
                 "<div class='data-point-select'>" +
-                    "<h4>Is business justification available?&nbsp;</h4>" +
+                    "<h5>Is business justification available?&nbsp;</h5>" +
                     "<div>" +
                         "<select class='legacy1-select-box'  onchange='updateAssetValue(\"audit_forward\", \"legacy2_grade\", $(this).val(), "+masterId+", \""+serial+"\")'>"+
                         "<option  value='' disabled='' selected=''>Select Grade</option>" +

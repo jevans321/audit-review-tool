@@ -39,7 +39,7 @@ nav {
 }
 
 .sub-container {
-    margin: 70px 25px 25px 25px;
+    margin: 30px 25px 25px 25px;
 }
 
 #test-menu {
@@ -175,7 +175,14 @@ h2 span, h3 span, h4 span {
 .asset-score-reverse-check,
 .asset-score-forward-check {
     text-align: center;
-    margin-top: 46px;
+    /* margin-top: 46px; */
+}
+
+.asset-score-reverse-check div:first-child,
+.asset-score-forward-check div:first-child {
+    height: 60px;
+    border-bottom: 1px solid #484b86;
+    padding-top: 8px;
 }
 
 .general-div {
@@ -401,8 +408,12 @@ h2 span, h3 span, h4 span {
     margin-right: 4px; */
 }
 
+/*
+* Modal styling
+*/
+
 .popup {
-    padding: 10px;
+    padding: 18px;
     background-color: #676767;
     /* margin: 0 auto; */
     top: 40%;
@@ -415,9 +426,48 @@ h2 span, h3 span, h4 span {
     text-align: left;
  }
 
+ .popup .closeButton {
+    float: right;
+    cursor: pointer !important;
+    background-color: #484b86 !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 15px !important;
+    text-align: center !important;
+    /* color: #fff!important; */
+    font-size: large !important;
+    font-weight: bold !important;
+    padding: 0px !important;
+    position: absolute;
+    left: 97%;
+    top: -12px;
+}
+
+.popup .closeButton:hover{
+    background-color: #bec1f9 !important;
+    font-weight: bold !important;
+}
+
  .data-point-select h4,
  .data-point-select > div {
     display: inline-block;
+ }
+
+ .modalConfirmButton {
+    width: 158px;
+    background: #484b86;
+    border: none;
+    padding: 4px 0;
+    color: white;
+ }
+
+ .modalConfirmButton:hover {
+    background-color: #bec1f9;
+    color: black;
+ }
+
+ .serialConfirm {
+     text-align: center;
  }
 
 
@@ -446,13 +496,13 @@ h2 span, h3 span, h4 span {
     border-bottom: 1px solid #ddd;
     text-align: center;
 }
-
-.duplicate-content > div:nth-child(odd):hover { 
+/* Table highlight*/
+/* .duplicate-content > div:nth-child(odd):hover { 
     background-color: #F6FFE0;
 }  
 .duplicate-content > div:nth-child(even):hover {
     background-color: #F6FFE0;
-}
+} */
 .duplicate-content > div:nth-child(even) {
     background-color: #F8F8F8;
 }
@@ -664,3 +714,30 @@ span.csvDownload {
 }
 
 /* Resporting Table Styling End */
+
+/*
+* Bootstrap Alert Styling
+*/
+
+.alert{
+    z-index: 5000;
+    border-radius: 0;
+}
+
+.alert-success {
+    color: #333;
+    background-color: #00ccff;
+    border-color: #00ccff;
+    font-weight: bolder;
+}
+
+.alert-warning{
+    color: #333;
+    background-color: #f1b619;
+    font-weight: bolder;
+}
+
+#alert_placeholder{
+    position: absolute;
+    width: 100%;
+}
