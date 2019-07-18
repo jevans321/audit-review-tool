@@ -378,7 +378,7 @@ class Index
             echo json_encode($array);
   
          } else {
-            return (array('status' => 'error','message' => $link->error));
+            echo json_encode(array('status' => 'error','message' => $link->error));
         }
     } // end getAssetGradeDataFromCep
 
@@ -515,6 +515,7 @@ class Index
                 
                 }  else {
                     echo json_encode(array('status' => 'error','message' => $link->error));
+                    exit;
                 }
             }
             /* update the side-bar serial list to show newly completed serial numbers with green dot */
@@ -526,40 +527,6 @@ class Index
             echo json_encode(array('status' => 'error','message' => $link->error));
         }
     } // end of submitAssetToDb
-
-    /* REMOVE QUERY: This query does not need to check for duplicates.
-       It thus has no purpose if it's not checking for duplicates. */
-    public function checkSerialInCep($serial, $masterId) {
-        // error_log("Inside checkSerialInCep serial: ". $serial);
-        include ("connection.php");
-        header('Content-Type: application/json');
-        
-        $sql = "SELECT system_serial FROM cep_hw WHERE system_serial = '$serial'";
-
-         if ($result = mysqli_query($link, $sql)) {
-
-            $rows = $result->fetch_all(MYSQLI_ASSOC);
-            // error_log("checkSerialInCep rows array: ". print_r($rows, true));
-            if(count($rows) == 0) {
-                echo json_encode(0);
-                exit;
-            }
-
-            $display = "<h4>Check for duplicates:</h4><div>";
-            $display .= "<div onclick='getAssetGradeData(\"$serial\", $masterId, \"audit_forward\")'>".htmlentities($rows[0]['system_serial'])."</div></div>";
-
-            // for ($i = 0; $i < count($rows); ++$i) {
-            //     // $serial = htmlentities($rows[$i]['system_serial']);
-            //     $display .=  "<div onclick='getAssetGradeData(\"$serial\", $masterId, \"audit_forward\")'>".htmlentities($rows[$i]['system_serial'])."</div>";
-            // }
-            // $display .= "</div>";
-
-            echo json_encode($display);
-
-         } else {
-            return (array('status' => 'error','message' => $link->error));
-        }
-    }
 
     /* HELPER function for getAssetGradeDataFromCep() function.
        After a serial number is searched for during a 'forward check', right before
@@ -597,29 +564,6 @@ class Index
         }
     } //end createForwardCheckAssetRecord
 
-    public function updateGradeInMaster($masterId, $grade, $column) {
-
-        // error_log("Inside createSerialListFromDb serial: ". $serial);
-		include ("connection.php");
-		header('Content-Type: application/json');
-		// $name = $_SESSION['firstName']. " " .$_SESSION['lastName'];
-
-		$sql = "UPDATE audit_master
-						SET $column = ?
-						WHERE id = ?";
-		
-		if($stmt = mysqli_prepare($link, $sql)){
-			// Bind variables to the prepared statement as parameters
-			mysqli_stmt_bind_param($stmt, "si", $grade, $masterId);
-            mysqli_stmt_execute($stmt);
-            
-            echo json_encode($stmt);
-
-		} else {
-			echo json_encode(array('status' => 'error','message' => $link->error));
-		}
-    } // end updateAssetValueInDb
-
     /* This function retrieves the count for half of the hardware systems of a given site */
     public function getForwardCheckSystemsTotal($site, $masterId) {
         // error_log("getForwardCheckSystemsTotal site: ". $site);
@@ -631,10 +575,12 @@ class Index
         /* Query the audit_master table to check if asset total already exists.
            Then send that total along with the completion count to front-end and exit function */
         $sql1 = "SELECT forward_asset_total, forward_assets_checked FROM audit_master WHERE id = $masterId";
+        // $sql1 = "SELECT * FROM audit_master WHERE site = $site";
         if ($result = mysqli_query($link, $sql1)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
-    
+            
+            // If a total count exists in database retrieve total and send to front-end, then exit function
             if($rows[0]['forward_asset_total'] > 0) {
                 $array[0] = $rows[0]['forward_asset_total'];
                 $array[1] = $rows[0]['forward_assets_checked'];
@@ -647,19 +593,21 @@ class Index
                 echo json_encode($array);
                 exit;
             }
-            // else the total does not exist, so move on to the query below to create the total
-         } else {
-            echo (array('status' => 'error','message' => $link->error));
-        }        
+            
+        } else {
+            echo json_encode(array('status' => 'error','message' => $link->error));
+            exit;
+        }
+        // If an asset total Does Not exist after query check above, move on to the query below to create the total
         /* Create Asset Number Total for Forward Check:
            - Query the cep_hw table with site name.
            - Count only the systems with grid locations where
            - Divide the count by 2
            - Echo the result */
         $sqlAlt = "SELECT ROUND(count(*) / 100) as total FROM cep_hw WHERE hw_site = '$site'
-                AND COALESCE(grid_id, '') <> '' AND grid_id <> 0";
+                   AND COALESCE(grid_id, '') <> '' AND grid_id <> 0";
 
-         if ($result = mysqli_query($link, $sqlAlt)) {
+        if ($result = mysqli_query($link, $sqlAlt)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             // error_log("getForwardCheckSystemsTotal rows array: ". print_r($rows, true));
@@ -682,13 +630,15 @@ class Index
 
             } else {
                 echo json_encode(array('status' => 'error','message' => $link->error));
+                exit;
             }
             /* Using an array here to keep echo output format consistent */
             $array[0] = $rows[0]['total'];
             echo json_encode($array);
 
-         } else {
-            return (array('status' => 'error','message' => $link->error));
+        } else {
+            echo json_encode(array('status' => 'error','message' => $link->error));
+            exit;
         }
     }
 
@@ -730,9 +680,9 @@ class Index
                 echo json_encode($array);
                 exit;
             } else {
-                echo (array('status' => 'error','message' => $link->error));
-            }
-            
+                echo json_encode(array('status' => 'error','message' => $link->error));
+                exit;
+            }         
             echo json_encode($stmt);
 
 		} else {
@@ -742,7 +692,6 @@ class Index
 
     /* Below Function checks if all data fields for a reviewed system have been graded. Returns a boolean. */
     public function areAllCepFieldsGraded($serial, $masterId, $table) {
-        // error_log("Inside checkSerialInCep serial: ". $serial);
         include ("connection.php");
         header('Content-Type: application/json');
         
@@ -762,7 +711,6 @@ class Index
          if ($result = mysqli_query($link, $sql)) {
 
             $rows = $result->fetch_all(MYSQLI_ASSOC);
-            // error_log("checkSerialInCep rows array: ". print_r($rows, true));
             if($rows[0]['legacy1'] == 1 || $rows[0]['legacy1'] == 1 || $rows[0]['systemOwnre'] == 1 || $rows[0]['systemType'] == 1 || $rows[0]['hostname'] == 1 || $rows[0]['ip'] == 1 || $rows[0]['room'] == 1 || $rows[0]['grid'] == 1 || $rows[0]['sshable'] == 1) {
                 return false;
             } else {
@@ -909,7 +857,6 @@ class Index
     }
 
     public function areAllAssetChecksComplete($table, $masterId) {
-        // error_log("Inside checkSerialInCep serial: ". $serial);
         include ("connection.php");
         header('Content-Type: application/json');
         
@@ -987,11 +934,6 @@ class Index
     $action = $_POST["action"];
 	  
     switch($action) { //Switch case for value of action
-        
-        case "generateReverseCheckAssets":
-            $activePmr = new Index();
-                $activePmr->generateReverseCheckAssets($_POST["masterId"], $_POST["site"]);
-            break;
 
         case "areAllAssetChecksComplete":
             $activePmr = new Index();
@@ -1008,14 +950,14 @@ class Index
 				$activePmr->createAuditMasterRecord($_POST["site"]);
             break;
 
-        case "checkSerial":
-            $activePmr = new Index();
-                $activePmr->checkSerialInCep($_POST["serial"], $_POST["masterId"]);
-            break;
-
         case "createSerialList":
             $activePmr = new Index();
                 $activePmr->createSerialListFromDb($_POST["table"], $_POST["masterId"], $_POST["fromFrontend"]);
+            break;
+
+        case "generateReverseCheckAssets":
+            $activePmr = new Index();
+                $activePmr->generateReverseCheckAssets($_POST["masterId"], $_POST["site"]);
             break;
             
         case "getAssetGradeData":
@@ -1061,11 +1003,6 @@ class Index
         case "updateAssetValue":
 			$activePmr = new Index();
 				$activePmr->updateAssetValueInDb($_POST["table"], $_POST["column"], $_POST["value"], $_POST["masterId"], $_POST["serial"]);
-            break;
-
-        case "updateGradeInMaster":
-            $activePmr = new Index();
-                $activePmr->updateGradeInMaster($_POST["masterId"], $_POST["grade"], $_POST["column"]);
             break;
             
     }
