@@ -14,7 +14,7 @@
 		
 		<!-- Body Content -->
 		<!-- (isset($_SESSION["version"]))? include ("views/index/index-content.php"): include ("views/index/index-content-login.php") -->
-		<?php include ("views/audit-dash/audit-dash-content.php") ?>
+		<?php include ("views/details/details-content.php") ?>
 		
 		<!-- End Body Content -->
       </div>
@@ -22,8 +22,9 @@
 
 	 <!-- scripts Section -->
 
-    <script src="/public/lib/popper.min.js"></script>
-    <script src="/public/lib/bootstrap/js/bootstrap.min.js"></script>
+    <script src="./public/lib/popper.min.js"></script>
+	<script src="./public/lib/bootstrap/js/bootstrap.min.js"></script>
+	<script src="./public/lib/bootstrap/js/bootstrap-alert.js"></script>
  
     <script>
 	

@@ -115,6 +115,12 @@ h2 span, h3 span, h4 span {
     color: #484b86;
 }
 
+.left-menu-active {
+    color: #484b86;
+    box-shadow: -8px 0 #d5d7f9;
+    border-bottom: 1px solid #d5d7f9 !important;
+}
+
 #search {
     border-radius: 3px;
     border: 1px solid #484b86;
@@ -286,8 +292,13 @@ h2 span, h3 span, h4 span {
     padding: 5px;
 }
 
-.serial-container:hover, .actionButton:hover, #generateButton:hover {
+.actionButton:hover, #generateButton:hover {
     background: #bec1f9;
+}
+
+.serial-container:hover {
+    box-shadow: -8px 0 #bec1f9;
+    border-bottom: 1px solid #bec1f9 !important;
 }
 
 .serial-text {
@@ -314,8 +325,7 @@ h2 span, h3 span, h4 span {
 #generateButton {
     display: inline-block;
     margin-left: 20px;
-    padding-top: 2px;
-    padding-left: 8px;
+    padding: 2px 8px;
     height: 28px;
     width: 31px;
     border-radius: 3px;
