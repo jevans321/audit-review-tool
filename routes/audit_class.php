@@ -21,7 +21,7 @@ class Index
                 echo json_encode("no results");
                 exit;
             }
-            $display = "<div><span>Status</span><span>Site</span><span title='Forward Check: Confirm system exists in CEP'>Test 1</span><span title='Forward Check: Confirm data integrity in CEP'>Test 2</span><span title='Forward Check: SSH Connection'>Test 3</span><span title='Forward Check: Legacy Deep Dive'>Test 4</span><span title='Reverse Check: Confirm data integrity on the floor'>Test 5</span><span>Date</span></div>";
+            $display = "<div><span>Status</span><span>Site</span><span title='Forward Check: Confirm system exists in CEP'>Test 1</span><span title='Forward Check: Confirm data integrity in CEP'>Test 2</span><span title='Forward Check: SSH Connection'>Test 3</span><span title='Forward Check: Legacy Deep Dive'>Test 4</span><span title='Reverse Check: Confirm data integrity on the floor'>Test 5</span><span title='Reverse Check: SSH Connection'>Test 6</span><span>Date</span></div>";
             for ($i = 0; $i < count($rows); ++$i) {
                 $date = date('m-d-Y', strtotime($rows[$i]['updated']));
                 // capitalize site name
@@ -37,10 +37,11 @@ class Index
                 $test3DotClass = htmlentities($rows[$i]['test_3']) != null ? 'dot-green-sml' : '';
                 $test4DotClass = htmlentities($rows[$i]['test_4']) != null ? 'dot-green-sml' : '';
                 $test5DotClass = htmlentities($rows[$i]['test_5']) != null ? 'dot-green-sml' : '';
+                $test6DotClass = htmlentities($rows[$i]['test_6']) != null ? 'dot-green-sml' : '';
                 $display .= "<div onclick='retrieveOldTest($(\".row-id\", this).text(), $(\".row-site\", this).text())'><span>". $status ."</span><span class='row-site'>". $site ."</span>";
                 $display .=  "<span>".$rows[$i]['test_1']."<span class='".$test1DotClass."'></span></span><span>".$rows[$i]['test_2']."<span class='".$test2DotClass."'></span></span>";
                 $display .=  "<span>".$rows[$i]['test_3']."<span class='".$test3DotClass."'></span></span>";
-                $display .=  "<span>".$rows[$i]['test_4']."<span class='".$test4DotClass."'></span></span><span>".$rows[$i]['test_5']."<span class='".$test5DotClass."'></span></span>";
+                $display .=  "<span>".$rows[$i]['test_4']."<span class='".$test4DotClass."'></span></span><span>".$rows[$i]['test_5']."<span class='".$test5DotClass."'></span></span><span>".$rows[$i]['test_6']."<span class='".$test6DotClass."'></span></span>";
                 $display .= "<span>". $date ."</span><span>id: <span class='row-id'>". $rows[$i]['id'] ."</span></span></div>";
             }
             // error_log("DISPLAY: ". $display);

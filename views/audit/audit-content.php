@@ -14,6 +14,15 @@
         </div>
     </div>
 
+    <div id="footer" style="display:none;">
+    <span>!</span>
+    <span style="display:none;">
+    	<div>Designed by: James Evans</div>
+    	<div>SVL - james.evans@ibm.com</div>
+    </span>
+    <!-- <div class=''><?php echo $_SESSION["version"]; ?></div> -->
+    </div>
+
   <script>
 
     function getSiteResults(selectedSite){

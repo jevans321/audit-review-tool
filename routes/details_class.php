@@ -706,7 +706,8 @@ class Index
                     100 / (SELECT COUNT(*) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') GradePercentageOfEachAsset,
                     (SELECT COUNT(*) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete' AND asset_found_grade = 'pass') TotalFoundOfReverseCheckedAssets,
                     (SELECT sum(case when score <= 6 then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalFailedOfReverseCheckedAssets,
-                    (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalNotFoundOfReverseCheckedAssets
+                    (SELECT sum(case when asset_found_grade = 'fail' then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalNotFoundOfReverseCheckedAssets,
+                    (SELECT sum(case when sshable_grade = 'fail' then 1 else 0 end) FROM audit_reverse WHERE master_id = $masterId AND review_status = 'complete') TotalReverseCheckAssetsNotSShable
                     FROM audit_reverse
                     group by TotalFoundOfReverseCheckedAssets";
         }
@@ -742,13 +743,14 @@ class Index
             } else { // Reverse Check
 
                 $test5Score = ROUND(100 - ($rows[0]['GradePercentageOfEachAsset'] * $rows[0]['TotalFailedOfReverseCheckedAssets']));
+                $test6Score = ROUND(100 - ($rows[0]['GradePercentageOfEachAsset'] * $rows[0]['TotalReverseCheckAssetsNotSShable']));
                 $sqlUpdate = "UPDATE audit_master                 
-                                SET test_5 = ?, is_reverse_complete = 'yes'
+                                SET test_5 = ?, test_6 = ?, is_reverse_complete = 'yes'
                                 WHERE id = $masterId";
 
                     if($stmt = mysqli_prepare($link, $sqlUpdate)){
                         // Bind variables to the prepared statement as parameters
-                        mysqli_stmt_bind_param($stmt, "i", $test5Score);
+                        mysqli_stmt_bind_param($stmt, "ii", $test5Score, $test6Score);
                         mysqli_stmt_execute($stmt); 
                     
                         // error_log("test1Score: ". $test1Score);

@@ -82,7 +82,7 @@
             /* add highlight to left menu item */
             var displayedSerial = $(".general-content-reverse-check .serialTitle").text();
             if(displayedSerial.length) {
-                $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "active" );
+                $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "left-menu-active" );
             }
 
         }
@@ -120,7 +120,7 @@
                             // add highlight to left menu item
                             var displayedSerial = $(".general-content-forward-check .serialTitle").text();       
                             if(displayedSerial.length) {
-                                $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "active" );
+                                $( "div.serial-container:contains("+displayedSerial+")" ).addClass( "left-menu-active" );
                             }
                         }
                     } else { // if no 'assets checked' count exists then just display 0
@@ -188,9 +188,9 @@
                         div container (if it exists in the element). This is done becuase the active
                         class is removed when the serial list is re-populated.
                         - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
-                        if($( "div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
+                        if($( "div.serial-container:contains("+serial+")" ).hasClass( "left-menu-active" )) {
                             $(".reverse-serial-list").html(data[2]);
-                            $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
+                            $( "div.serial-container:contains("+serial+")" ).addClass( "left-menu-active" );
                         } else {
                             $(".reverse-serial-list").html(data[2]);
                         }
@@ -288,7 +288,7 @@
                     console.log("incrementAssetCheckedTotalAndFoundStatus data: ", data);
                     if(data.status !== "error") {
                         $(".forward-serial-list").html(data[0]);
-                        $( "div.serial-container:contains("+submittedSerial+")" ).addClass( "active" ); // highlight serial number menu item that was just searched
+                        $( "div.serial-container:contains("+submittedSerial+")" ).addClass( "left-menu-active" ); // highlight serial number menu item that was just searched
                         $("#current-asset").text(data[1]);
                         /* Below conditional: if data[2] exists it means all required assets for
                         Forward Check have been searched for */
@@ -489,6 +489,7 @@
                     } else { // Reverse Check
                         // display the Asset Score div with score retrieved from database.
                         $(".asset-score-reverse-check").html(data[1]);
+                        bootstrapAlert('info', 'Asset Graded');
                     /* Run the below function to check if all asset reviews are complete for the Forward/Reverse Check.
                         If so, the master table will be updated with the scores from the completed test. */
                         areAllAssetChecksComplete(table, masterId);
@@ -498,14 +499,14 @@
                     div container (if it exists in the element). This is done becuase the active
                     class is removed when the serial list is re-populated.
                     - the serial list is re-populated from the backend whenever it's status changes to 'complete' */
-                    if($("div.serial-container:contains("+serial+")" ).hasClass( "active" )) {
+                    if($("div.serial-container:contains("+serial+")" ).hasClass( "left-menu-active" )) {
                         if(table === "audit_forward") {
                             $(".forward-serial-list").html(data[0]);
                         } else {
                             $(".reverse-serial-list").html(data[0]);
                         }
                         // now add active class back to serial div
-                        $( "div.serial-container:contains("+serial+")" ).addClass( "active" );
+                        $( "div.serial-container:contains("+serial+")" ).addClass( "left-menu-active" );
                     } else { // if the active class doesn't exist only add the updated html from the back-end
                         if(table === "audit_forward") {
                             $(".forward-serial-list").html(data[0]);
